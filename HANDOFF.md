@@ -9,11 +9,9 @@
 
 ## 1. Cómo retomar esto en otra máquina
 
-Este proyecto **no está en git todavía** — no hay repo remoto. Para moverlo a otro
-equipo hoy, la única forma es copiar la carpeta completa (excluyendo `node_modules`
-y `dist`, que se regeneran). **Recomendación fuerte:** antes de seguir, inicializar
-un repo git y subirlo a un remoto (GitHub/GitLab privado) — sin eso, cualquier
-traspaso futuro va a ser copiar carpetas a mano otra vez.
+El proyecto está en git con remoto en GitHub (privado):
+`https://github.com/michaelcr24/prismacash.git` — rama `main`, ya con todas las
+migraciones y la feature de navegación superadmin pusheadas (2026-09-07).
 
 Pasos para levantarlo en la máquina nueva:
 
@@ -99,11 +97,46 @@ Project Settings → API).
 - **Guardas de ruta**: `RequireAuth` en `src/App.tsx` redirige a `/login` si no
   hay sesión (espera a que la sesión termine de restaurarse antes de decidir).
 
+### Sprint 3.5 (2026-09-07) — Navegación superadmin entre pantallas
+
+- **Hook `useSessionRole()`** (`src/hooks/useSessionRole.ts`): lee el rol del JWT
+  desde `useAuth().session` + `readClaims()`. Única fuente de "¿es superadmin?" en
+  las tres pantallas.
+- **Sidebar admin** (`AdminLayout.tsx`): sección "Pantallas operativas" con
+  enlaces a Kiosk (`/e/{slug}/kiosk`) y POS (`/e/{slug}/pos`), visible solo si
+  `role === 'super_admin'`.
+- **Vuelta al dashboard**: link "← Dashboard" en el topbar de `Kiosk.tsx` y
+  `Pos.tsx`, visible solo para superadmin.
+- **Staff editable (solo superadmin)** (`Staff.tsx`): formulario "Asociar persona
+  a sucursal" (insert en `branch_members`) + botón "Quitar" (delete por
+  `branch_members.id`). Invalidación de queries react-query
+  (`admin-staff-members`, `admin-staff-operators`). `event_admin` conserva la
+  vista de solo lectura.
+- **Migración `0012_super_admin_branch_members.sql`**: política RLS
+  `for all using (is_super_admin()) with check (is_super_admin())` sobre
+  `branch_members` (antes solo SELECT). **NO ESTÁ APLICADA TODAVÍA** — aplicar
+  por SQL Editor (ver sección 3).
+- Hallazgo clave: las Edge Functions `charge`/`topup` solo validan membresía de
+  sucursal si el cliente envía `branch_id`, y ni POS ni Kiosk lo envían → el
+  superadmin puede operar POS/Kiosk de verdad sin ser `branch_member`.
+- Los 6 commits (feature) están en `main` y pusheados; el worktree está limpio.
+
 ---
 
 ## 3. Pendientes activos
 
-- **No hay bloqueador SQL ni de cámara.** La migración `0011` (lectura de
+- **Migración `0012` sin aplicar**: pegar
+  `supabase/migrations/0012_super_admin_branch_members.sql` en el SQL Editor del
+  dashboard. Hasta aplicarla, el formulario de "Asociar persona" fallará con error
+  RLS (`Branch assignment` denegado vía PostgREST).
+- **Verificación manual (Task 6 del plan)**: `supabase db push` o SQL Editor +
+  login como superadmin (sección "Pantallas operativas", vuelta "← Dashboard",
+  asignar/quitar en Personal) y como `event_admin` (que NO se vean esos controles).
+  Importante probar con **login fresco** tras asignar una persona: el JWT no se
+  refresca en mitad de sesión y los claims `event_role`/`event_id` se quedan
+  viejos hasta volver a entrar (consecuencia documentada del diseño
+  single-event-per-account de `0004`).
+- No hay bloqueador SQL ni de cámara. La migración `0011` (lectura de
   staff para event_admin + publicación Realtime de `transactions`) ya está
   aplicada en el proyecto real. La cámara en `/e/demo/kiosk` y `/e/demo/pos`
   funciona con mensajes de error visibles si algo falla.
@@ -174,9 +207,17 @@ continúe entienda por qué existen ciertas líneas "raras" en el SQL:
 3. CRUD de sucursales/staff/dispositivos para `event_admin` — hoy las vistas
    admin son de solo lectura por decisión de producto (solo `super_admin`
    edita). Retomar cuando se quiera que el admin del evento administre.
-4. Inicializar git + repo remoto (ver sección 1).
-5. Fase 2 del plan: app móvil Expo, recarga online (Stripe/Mercado
-   Pago/institución bancaria — ya documentado en el plan), modo offline.
+4. ~~Inicializar git + repo remoto~~ — hecho: `github.com/michaelcr24/prismacash`,
+   rama `main`, pusheado.
+5. **Alta de usuarios y asignación de roles desde la UI (pendiente)** — NO
+   existe ningún mantenimiento para crear usuarios ni asignar roles (ni el rol
+   `super_admin`). Hoy los usuarios/roles se crean a mano (SQL Editor /
+   dashboard de Supabase). Falta una pantalla de gestión (e.g. en el admin:
+   registrar `auth.users` + `profiles.role` + `event_admins`/`branch_members`),
+   con las políticas RLS / función de admin correspondientes.
+6. **App móvil nativa (pendiente)** — Fase 2 del plan: app Expo, recarga
+   online (Stripe/Mercado Pago/institución bancaria — ya documentado en el
+   plan), modo offline.
 
 ---
 
@@ -187,7 +228,7 @@ PLAN-IMPLEMENTACION.md     plan maestro completo (markdown)
 PrismaCash-Plan.html       mismo plan, versión visual/interactiva
 HANDOFF.md                 este archivo
 supabase/
-  migrations/0001-0011     correr en orden — 0010 topup, 0011 se aplica a mano en SQL Editor
+  migrations/0001-0012     correr en orden — 0010 topup, 0011 aplicada, 0012 pendiente de aplicar
   seed.sql                 datos de prueba (evento "demo")
   functions/                charge · issue-device · block-and-replace · topup · _shared/
 src/
@@ -196,6 +237,7 @@ src/
   lib/sessionRole.ts         roles del JWT (claims del auth hook) + ruta por rol
   lib/functionError.ts       extrae el error de negocio de Edge Functions
   hooks/useEvent.ts          evento actual por slug (RLS-aware)
+  hooks/useSessionRole.ts    rol de sesión (super_admin/event_admin/operator) — navegación superadmin
   components/DeviceScanner.tsx    NFC (Web NFC) / QR (cámara)
   pages/Login.tsx, Kiosk.tsx, Pos.tsx, admin/*
 ```
