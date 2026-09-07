@@ -119,30 +119,40 @@ export default function Staff() {
     if (!eventId || !selectedBranchId || !selectedUserId) return
     setMutating(true)
     setMutError(null)
-    const { error } = await supabase
-      .from('branch_members')
-      .insert({ user_id: selectedUserId, branch_id: selectedBranchId })
-    setMutating(false)
-    if (error) {
-      setMutError('No se pudo asignar: es posible que la persona ya esté en esa sucursal.')
-      return
+    try {
+      const { error } = await supabase
+        .from('branch_members')
+        .insert({ user_id: selectedUserId, branch_id: selectedBranchId })
+      if (error) {
+        setMutError(
+          error.code === '23505'
+            ? 'No se pudo asignar: es posible que la persona ya esté en esa sucursal.'
+            : 'No se pudo asignar. Intenta de nuevo.',
+        )
+        return
+      }
+      queryClient.invalidateQueries({ queryKey: ['admin-staff-members', eventId] })
+      queryClient.invalidateQueries({ queryKey: ['admin-staff-operators'] })
+      setSelectedUserId('')
+    } finally {
+      setMutating(false)
     }
-    queryClient.invalidateQueries({ queryKey: ['admin-staff-members', eventId] })
-    queryClient.invalidateQueries({ queryKey: ['admin-staff-operators'] })
-    setSelectedUserId('')
   }
 
   async function handleRemove(memberId: string) {
     if (!eventId) return
     setMutating(true)
     setMutError(null)
-    const { error } = await supabase.from('branch_members').delete().eq('id', memberId)
-    setMutating(false)
-    if (error) {
-      setMutError('No se pudo quitar la asignación.')
-      return
+    try {
+      const { error } = await supabase.from('branch_members').delete().eq('id', memberId)
+      if (error) {
+        setMutError('No se pudo quitar la asignación.')
+        return
+      }
+      queryClient.invalidateQueries({ queryKey: ['admin-staff-members', eventId] })
+    } finally {
+      setMutating(false)
     }
-    queryClient.invalidateQueries({ queryKey: ['admin-staff-members', eventId] })
   }
 
   const assignedUserIdsInBranch = new Set(
@@ -230,6 +240,7 @@ export default function Staff() {
             phone={m.profile?.phone}
             branch={m.branch?.name ?? '—'}
             onRemove={isSuperAdmin ? () => handleRemove(m.id) : undefined}
+            disabled={mutating}
           />
         ))}
       </div>
@@ -243,12 +254,14 @@ function PersonCard({
   phone,
   branch,
   onRemove,
+  disabled,
 }: {
   name: string
   role: string
   phone: string | null
   branch: string | null
   onRemove?: () => void
+  disabled?: boolean
 }) {
   return (
     <div className="card flex items-center justify-between gap-3 p-4">
@@ -264,7 +277,8 @@ function PersonCard({
           <button
             type="button"
             onClick={onRemove}
-            className="text-xs text-ink-faint underline underline-offset-2 hover:text-rust"
+            disabled={disabled}
+            className="text-xs text-ink-faint underline underline-offset-2 hover:text-rust disabled:opacity-50"
           >
             Quitar
           </button>
