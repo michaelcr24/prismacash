@@ -1,4 +1,5 @@
-import { NavLink, Outlet, useParams } from 'react-router-dom'
+import { Link, NavLink, Outlet, useParams } from 'react-router-dom'
+import { useSessionRole } from '../../hooks/useSessionRole'
 
 const NAV = [
   { to: 'dashboard', n: '01', label: 'Dashboard' },
@@ -11,6 +12,7 @@ const NAV = [
 
 export default function AdminLayout() {
   const { eventSlug } = useParams()
+  const role = useSessionRole()
 
   return (
     <div className="mx-auto grid min-h-dvh w-full max-w-[1440px] gap-4 p-4 md:grid-cols-[230px_1fr] md:p-6">
@@ -33,6 +35,21 @@ export default function AdminLayout() {
             {item.label}
           </NavLink>
         ))}
+        {role === 'super_admin' && (
+          <div className="mt-4 flex flex-col gap-1 border-t border-line pt-4">
+            <p className="px-2 pb-1 text-[0.68rem] font-bold uppercase tracking-[0.6px] text-ink-faint">
+              Pantallas operativas
+            </p>
+            <Link to={`/e/${eventSlug}/kiosk`} className="navlink">
+              <span className="n">K</span>
+              Kiosk
+            </Link>
+            <Link to={`/e/${eventSlug}/pos`} className="navlink">
+              <span className="n">P</span>
+              Punto de venta
+            </Link>
+          </div>
+        )}
       </nav>
       <main className="min-w-0">
         <Outlet />
