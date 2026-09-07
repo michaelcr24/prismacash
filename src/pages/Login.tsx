@@ -77,16 +77,21 @@ export default function Login() {
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center bg-paper p-4">
       <div className="mb-8 text-center">
-        <h1 className="text-5xl font-extrabold tracking-tight" style={{ color: 'var(--brand-primary)' }}>
-          PrismaCash
-        </h1>
-        <p className="mt-2 font-mono text-[0.68rem] uppercase tracking-[0.18em] text-ink-faint">
-          Pagos sin contacto · eventos
-        </p>
+        <div
+          className="mx-auto mb-4 grid h-[52px] w-[52px] place-items-center rounded-[18px] text-2xl text-white"
+          style={{ background: 'var(--grad-brand)' }}
+        >
+          ✦
+        </div>
+        <h1 className="text-[28px] font-extrabold tracking-tight text-ink">PrismaCash</h1>
+        <p className="mt-1 text-[13px] font-bold text-ink-soft">Pagos sin contacto · eventos</p>
       </div>
 
-      <div className="w-full max-w-sm rounded-lg border border-line bg-paper-raised p-6">
-        <p className="mb-5 text-sm text-ink-soft">Selecciona tu evento e inicia sesión.</p>
+      <div
+        className="w-full max-w-sm rounded-[20px] border border-line bg-paper-raised p-6"
+        style={{ boxShadow: 'var(--shadow-card)' }}
+      >
+        <p className="mb-5 text-sm font-semibold text-ink-soft">Selecciona tu evento e inicia sesión.</p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="field">

@@ -13,15 +13,18 @@ export default function AdminLayout() {
   const { eventSlug } = useParams()
 
   return (
-    <div className="grid min-h-dvh md:grid-cols-[230px_1fr]">
-      <nav className="flex flex-col gap-0.5 border-b border-line bg-paper-raised p-4 md:border-b-0 md:border-r md:p-5 md:pl-0">
-        <div className="mb-4 md:mb-6">
-          <p className="font-display text-xl font-extrabold uppercase tracking-wide text-ink">
-            PrismaCash<span className="text-marigold">/admin</span>
+    <div className="mx-auto grid min-h-dvh w-full max-w-[1440px] gap-4 p-4 md:grid-cols-[230px_1fr] md:p-6">
+      <nav
+        className="flex flex-col gap-1 self-start rounded-[20px] border border-line bg-white p-4 md:sticky md:top-6"
+        style={{ boxShadow: 'var(--shadow-card)' }}
+      >
+        <div className="mb-4 px-2">
+          <p className="text-lg font-extrabold tracking-tight text-ink">
+            PrismaCash<span className="text-violet">/admin</span>
           </p>
-          <div className="mt-4 border-l border-line pl-3">
-            <p className="font-mono text-[0.66rem] uppercase tracking-wider text-ink-faint">evento</p>
-            <p className="font-semibold text-marigold">{eventSlug}</p>
+          <div className="mt-4 border-l-2 border-violet pl-3">
+            <p className="text-[0.68rem] font-bold uppercase tracking-[0.6px] text-ink-faint">evento</p>
+            <p className="font-extrabold text-violet">{eventSlug}</p>
           </div>
         </div>
         {NAV.map((item) => (
@@ -31,7 +34,7 @@ export default function AdminLayout() {
           </NavLink>
         ))}
       </nav>
-      <main className="p-5 md:p-8">
+      <main className="min-w-0">
         <Outlet />
       </main>
     </div>

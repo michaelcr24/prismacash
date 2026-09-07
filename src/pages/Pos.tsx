@@ -95,8 +95,13 @@ export default function Pos() {
       </header>
 
       {!deviceUid ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-ink-faint/60 p-8">
-          <p className="font-mono text-xs uppercase tracking-wider text-ink-faint">En espera de escaneo</p>
+        <div className="scan-shell flex flex-1 flex-col items-center justify-center gap-3">
+          <div className="lens">
+            <span className="grid h-full w-full place-items-center text-5xl text-violet">
+              {event?.device_type === 'nfc' ? '◉' : '▣'}
+            </span>
+          </div>
+          <p className="text-sm font-bold text-ink-soft">En espera de escaneo</p>
           <DeviceScanner deviceType={event?.device_type ?? 'qr'} onScan={setDeviceUid} />
         </div>
       ) : (

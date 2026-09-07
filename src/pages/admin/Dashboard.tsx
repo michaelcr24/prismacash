@@ -196,8 +196,8 @@ export default function Dashboard() {
             <AreaChart data={byHour} margin={{ left: -14, right: 8, top: 4, bottom: 0 }}>
               <defs>
                 <linearGradient id="fillSales" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="var(--color-signal)" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="var(--color-signal)" stopOpacity={0} />
+                  <stop offset="5%" stopColor="var(--color-violet)" stopOpacity={0.35} />
+                  <stop offset="95%" stopColor="var(--color-violet)" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-line)" vertical={false} />
@@ -218,7 +218,7 @@ export default function Dashboard() {
               <Area
                 type="monotone"
                 dataKey="total"
-                stroke="var(--color-signal)"
+                stroke="var(--color-violet)"
                 strokeWidth={2}
                 fill="url(#fillSales)"
               />

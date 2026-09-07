@@ -183,10 +183,10 @@ export default function Kiosk() {
             role="tab"
             aria-selected={mode === m.value}
             onClick={() => switchMode(m.value)}
-            className={`flex-1 rounded-md border px-2 py-2 font-mono text-[0.66rem] uppercase tracking-wide ${
+            className={`flex-1 rounded-full border px-2 py-2 text-sm font-bold transition ${
               mode === m.value
-                ? 'border-marigold bg-marigold-bg font-semibold text-marigold'
-                : 'border-line bg-paper-raised text-ink-faint hover:text-ink'
+                ? 'border-transparent bg-lilac text-violet-deep'
+                : 'border-line bg-white text-ink-soft hover:text-ink'
             }`}
           >
             {m.label}
@@ -282,7 +282,9 @@ export default function Kiosk() {
         <button
           type="submit"
           disabled={!deviceUid || (mode === 'replace' ? !oldDeviceUid : false) || submitting}
-          className={`${mode === 'new' ? 'cta-gold' : 'cta-solid'} disabled:opacity-50`}
+          className={`${
+            mode === 'new' ? 'cta-gold' : mode === 'replace' ? 'cta-coral' : 'cta-solid'
+          } disabled:opacity-50`}
         >
           {submitting
             ? mode === 'replace'
@@ -320,11 +322,15 @@ function ScanBox({
   deviceType: DeviceType
   onScan: (uid: string) => void
 }) {
+  const glyph = deviceType === 'nfc' ? '◉' : '▣'
   return (
-    <div className="rounded-md border border-line bg-paper px-3 py-3">
-      <p className="text-xs font-semibold">{title}</p>
-      <p className="text-xs text-ink-faint">{hint}</p>
-      <div className="mt-2 flex justify-center">
+    <div className="scan-shell flex flex-col gap-2">
+      <div className="lens" style={{ width: 90, height: 90 }}>
+        <span className="grid h-full w-full place-items-center text-4xl text-violet">{glyph}</span>
+      </div>
+      <p className="text-sm font-bold text-ink">{title}</p>
+      <p className="text-xs text-ink-soft">{hint}</p>
+      <div className="mt-1 flex justify-center">
         <DeviceScanner deviceType={deviceType} onScan={onScan} />
       </div>
     </div>
