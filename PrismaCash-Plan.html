@@ -1,0 +1,1187 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PrismaCash Plan Maestro</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --paper:#EFEEE6;
+    --paper-raised:#FAF9F3;
+    --ink:#1A1D1B;
+    --ink-soft:#5B5F55;
+    --ink-faint:#82867B;
+    --line:#D9D6C6;
+    --marigold:#B5691A;
+    --marigold-fill:#E2A63B;
+    --signal:#187A5D;
+    --signal-fill:#1E8F6F;
+    --rust:#A63F22;
+    --rust-fill:#C1542E;
+    --term-bg:#181B17;
+    --term-ink:#EDEAE0;
+    --term-mut:#8B9086;
+    --term-accent:#E2A63B;
+    --term-signal:#4FD6A8;
+    --shadow: 0 1px 0 rgba(26,29,23,.05);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#14171A;
+      --paper-raised:#1B1F1E;
+      --ink:#ECE9DF;
+      --ink-soft:#A7ABA0;
+      --ink-faint:#767A70;
+      --line:#2B302C;
+      --marigold:#F0B658;
+      --marigold-fill:#E2A63B;
+      --signal:#3FCB9E;
+      --signal-fill:#1E8F6F;
+      --rust:#E4805C;
+      --rust-fill:#C1542E;
+      --shadow: 0 1px 0 rgba(0,0,0,.4);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#14171A;
+    --paper-raised:#1B1F1E;
+    --ink:#ECE9DF;
+    --ink-soft:#A7ABA0;
+    --ink-faint:#767A70;
+    --line:#2B302C;
+    --marigold:#F0B658;
+    --marigold-fill:#E2A63B;
+    --signal:#3FCB9E;
+    --signal-fill:#1E8F6F;
+    --rust:#E4805C;
+    --rust-fill:#C1542E;
+    --shadow: 0 1px 0 rgba(0,0,0,.4);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Work Sans', ui-sans-serif, system-ui, sans-serif;
+    font-size:16px;
+    line-height:1.6;
+  }
+  h1,h2,h3,h4{
+    font-family:'Big Shoulders Display', ui-sans-serif, sans-serif;
+    text-transform:uppercase;
+    letter-spacing:.01em;
+    text-wrap:balance;
+    color:var(--ink);
+    margin:0;
+  }
+  code, .mono, .tag-num, .amount, .kbd{
+    font-family:'IBM Plex Mono', ui-monospace, monospace;
+    font-variant-numeric:tabular-nums;
+  }
+  a{color:inherit;}
+  p{margin:0 0 .9em 0; max-width:66ch;}
+  p:last-child{margin-bottom:0;}
+  ::selection{background:var(--marigold-fill);color:#1A1D1B;}
+
+  .skip{position:absolute;left:-999px;}
+  .skip:focus{left:1rem;top:1rem;background:var(--ink);color:var(--paper);padding:.5rem 1rem;border-radius:.3rem;z-index:100;}
+
+  /* ---------- layout shell ---------- */
+  .shell{
+    display:grid;
+    grid-template-columns: 250px minmax(0,1fr);
+    max-width:1180px;
+    margin:0 auto;
+  }
+  @media (max-width: 900px){
+    .shell{grid-template-columns: 1fr;}
+  }
+
+  /* ---------- top bar (mobile) ---------- */
+  .topbar{
+    display:none;
+    position:sticky; top:0; z-index:20;
+    background:var(--paper);
+    border-bottom:1px solid var(--line);
+    padding:.75rem 1rem;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .topbar .brand{font-family:'Big Shoulders Display'; font-weight:800; text-transform:uppercase; font-size:1.1rem;}
+  .topbar button{
+    font:inherit; background:var(--paper-raised); border:1px solid var(--line); color:var(--ink);
+    border-radius:.4rem; padding:.4rem .7rem; font-family:'IBM Plex Mono'; font-size:.75rem;
+  }
+  @media (max-width: 900px){ .topbar{display:flex;} }
+
+  /* ---------- toc ---------- */
+  nav.toc{
+    padding:2.2rem 1.2rem 2rem 0;
+    position:sticky; top:0; align-self:start; height:100vh; overflow-y:auto;
+  }
+  nav.toc .toc-brand{
+    font-family:'Big Shoulders Display'; font-weight:800; font-size:1.5rem; letter-spacing:.02em;
+    display:flex; align-items:baseline; gap:.4rem; margin-bottom:.15rem;
+  }
+  nav.toc .toc-brand .dot{color:var(--marigold); font-family:'IBM Plex Mono'; font-weight:600; font-size:.9rem;}
+  nav.toc .toc-sub{
+    font-family:'IBM Plex Mono'; font-size:.7rem; color:var(--ink-faint); text-transform:uppercase;
+    letter-spacing:.06em; margin-bottom:1.6rem; display:block;
+  }
+  nav.toc ol{list-style:none; margin:0; padding:0; border-left:1px solid var(--line);}
+  nav.toc li{margin:0;}
+  nav.toc a{
+    display:flex; gap:.55rem; align-items:baseline;
+    padding:.4rem .9rem; margin-left:-1px;
+    border-left:2px solid transparent;
+    text-decoration:none; color:var(--ink-soft);
+    font-size:.85rem;
+  }
+  nav.toc a .n{font-family:'IBM Plex Mono'; font-size:.72rem; color:var(--ink-faint); min-width:1.3em;}
+  nav.toc a:hover{color:var(--ink);}
+  nav.toc a.active{color:var(--ink); border-left-color:var(--marigold); font-weight:600;}
+  nav.toc a.active .n{color:var(--marigold);}
+  @media (max-width: 900px){
+    nav.toc{position:fixed; inset:0 20% 0 0; z-index:19; background:var(--paper); padding:1.5rem; border-right:1px solid var(--line); box-shadow:0 0 30px rgba(0,0,0,.25);}
+  }
+
+  main{padding:0 1.4rem 6rem;}
+  @media (max-width:900px){ main{padding:0 1.1rem 5rem;} }
+
+  /* ---------- cover ---------- */
+  .cover{padding:3rem 0 2.2rem; border-bottom:1px solid var(--line); margin-bottom:2.6rem;}
+  .cover .eyebrow{
+    font-family:'IBM Plex Mono'; font-size:.75rem; text-transform:uppercase; letter-spacing:.08em;
+    color:var(--marigold); margin-bottom:.9rem; display:block;
+  }
+  .cover h1{font-size:clamp(2.6rem, 7vw, 4.4rem); line-height:.94; font-weight:800;}
+  .cover .tagline{font-size:1.05rem; color:var(--ink-soft); max-width:52ch; margin-top:1.1rem;}
+  .chips{display:flex; flex-wrap:wrap; gap:.5rem; margin-top:1.6rem;}
+  .chip{
+    font-family:'IBM Plex Mono'; font-size:.72rem; padding:.3rem .6rem; border-radius:3px;
+    border:1px solid var(--line); color:var(--ink-soft); background:var(--paper-raised);
+  }
+
+  .flow3{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:.9rem; margin-top:2.2rem;
+  }
+  @media (max-width:640px){ .flow3{grid-template-columns:1fr;} }
+  .flow3 .step{
+    background:var(--paper-raised); border:1px solid var(--line); border-radius:.5rem;
+    padding:1rem 1.1rem; position:relative;
+  }
+  .flow3 .step .num{
+    font-family:'IBM Plex Mono'; font-size:.7rem; color:var(--marigold); display:block; margin-bottom:.4rem;
+  }
+  .flow3 .step h4{font-size:1.05rem; text-transform:none; font-weight:700; margin-bottom:.3rem;}
+  .flow3 .step p{font-size:.87rem; color:var(--ink-soft); margin:0;}
+  .flow3 .arrow{
+    display:none;
+  }
+  @media (min-width:641px){
+    .flow3 .step:not(:last-child)::after{
+      content:"→"; position:absolute; right:-1.05rem; top:50%; transform:translateY(-50%);
+      color:var(--ink-faint); font-size:1.1rem;
+    }
+  }
+
+  /* ---------- sections ---------- */
+  section{padding:2.6rem 0; border-bottom:1px solid var(--line); scroll-margin-top:1rem;}
+  section:last-of-type{border-bottom:none;}
+  .head{display:flex; gap:.9rem; align-items:baseline; margin-bottom:1.2rem;}
+  .head .tag-num{font-size:1.6rem; color:var(--marigold); font-weight:600;}
+  .head h2{font-size:1.7rem; font-weight:700;}
+  .lede{color:var(--ink-soft); max-width:62ch; margin-bottom:1.3rem;}
+
+  .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:1.4rem;}
+  @media (max-width:760px){ .grid-2{grid-template-columns:1fr;} }
+  .grid-3{display:grid; grid-template-columns:repeat(3,1fr); gap:1rem;}
+  @media (max-width:760px){ .grid-3{grid-template-columns:1fr;} }
+
+  /* callouts */
+  .callout{
+    border-radius:.5rem; padding:1.1rem 1.3rem; border:1px solid var(--line);
+    background:var(--paper-raised);
+  }
+  .callout h4{
+    font-family:'IBM Plex Mono'; text-transform:uppercase; font-size:.78rem; letter-spacing:.05em;
+    display:flex; align-items:center; gap:.5rem; margin-bottom:.6rem; font-weight:600;
+  }
+  .callout ul{margin:.4rem 0 0; padding-left:1.1rem;}
+  .callout li{margin-bottom:.4rem; font-size:.92rem;}
+  .callout li:last-child{margin-bottom:0;}
+  .callout.decision{border-left:3px solid var(--marigold);}
+  .callout.decision h4{color:var(--marigold);}
+  .callout.legal{border-left:3px solid var(--rust);}
+  .callout.legal h4{color:var(--rust);}
+  .callout.legal strong{color:var(--ink);}
+
+  /* tables */
+  .tablewrap{overflow-x:auto; border:1px solid var(--line); border-radius:.5rem;}
+  table{border-collapse:collapse; width:100%; font-size:.88rem;}
+  th,td{text-align:left; padding:.65rem .85rem; border-bottom:1px solid var(--line); vertical-align:top;}
+  thead th{
+    font-family:'IBM Plex Mono'; font-size:.7rem; text-transform:uppercase; letter-spacing:.05em;
+    color:var(--ink-faint); background:var(--paper-raised);
+  }
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover{background:var(--paper-raised);}
+  td .mono{font-size:.85em;}
+
+  /* terminal / schema block */
+  .terminal{
+    background:var(--term-bg); color:var(--term-ink); border-radius:.5rem;
+    padding:1.1rem 1.2rem; font-family:'IBM Plex Mono'; font-size:.8rem; line-height:1.65;
+    overflow-x:auto;
+  }
+  .terminal .c{color:var(--term-mut);}
+  .terminal .k{color:var(--term-accent);}
+  .terminal .t{color:var(--term-signal);}
+  .terminal-bar{
+    display:flex; align-items:center; gap:.4rem; margin-bottom:.7rem;
+  }
+  .terminal-bar .d{width:9px;height:9px;border-radius:50%; background:var(--term-mut); opacity:.5;}
+  .terminal-bar span.label{font-family:'IBM Plex Mono'; font-size:.68rem; color:var(--term-mut); margin-left:.4rem;}
+
+  details.schema{border:1px solid var(--line); border-radius:.5rem; overflow:hidden;}
+  details.schema summary{
+    cursor:pointer; list-style:none; padding:.85rem 1.1rem; font-family:'IBM Plex Mono';
+    font-size:.78rem; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-soft);
+    display:flex; align-items:center; gap:.6rem; background:var(--paper-raised);
+  }
+  details.schema summary::-webkit-details-marker{display:none;}
+  details.schema summary::before{content:"▸"; color:var(--marigold); transition:transform .15s;}
+  details.schema[open] summary::before{transform:rotate(90deg);}
+  details.schema .terminal{border-radius:0;}
+
+  /* diagrams */
+  figure.diagram{margin:0; padding:1.2rem; border:1px solid var(--line); border-radius:.6rem; background:var(--paper-raised);}
+  figure.diagram svg{max-width:100%; height:auto; display:block;}
+  figcaption{font-size:.82rem; color:var(--ink-faint); margin-top:.8rem; max-width:70ch;}
+
+  /* roles funnel */
+  .funnel{display:flex; flex-direction:column; gap:.5rem; max-width:640px;}
+  .funnel .rank{
+    display:grid; grid-template-columns:150px 1fr; gap:1rem; align-items:center;
+    background:var(--paper-raised); border:1px solid var(--line); border-radius:.4rem;
+    padding:.75rem 1rem;
+  }
+  .funnel .rank .role{font-family:'IBM Plex Mono'; font-weight:600; font-size:.82rem;}
+  .funnel .rank .scope{font-size:.85rem; color:var(--ink-soft);}
+  .funnel .rank:nth-child(1){margin-right:0;}
+  .funnel .rank:nth-child(2){margin-right:8%;}
+  .funnel .rank:nth-child(3){margin-right:16%;}
+  .funnel .rank:nth-child(4){margin-right:24%;}
+  .funnel .rank .role .bar{
+    display:inline-block; width:.5rem; height:.5rem; border-radius:50%; margin-right:.5rem; vertical-align:middle;
+  }
+  .r1 .bar{background:var(--rust-fill);} .r2 .bar{background:var(--marigold-fill);}
+  .r3 .bar{background:var(--signal-fill);} .r4 .bar{background:var(--ink-faint);}
+
+  /* tabs */
+  .tabs{display:flex; gap:.4rem; margin-bottom:1rem; flex-wrap:wrap;}
+  .tabs button{
+    font:inherit; font-family:'IBM Plex Mono'; font-size:.75rem; text-transform:uppercase; letter-spacing:.04em;
+    padding:.5rem .9rem; border-radius:.4rem 0.4rem 0 0; border:1px solid var(--line); border-bottom:none;
+    background:var(--paper); color:var(--ink-faint); cursor:pointer; transform:translateY(1px);
+  }
+  .tabs button[aria-selected="true"]{color:var(--marigold); background:var(--paper-raised); border-color:var(--line); transform:translateY(0); border-bottom:1px solid var(--paper-raised);}
+  .tabpanel{border:1px solid var(--line); border-radius:0 .5rem .5rem .5rem; padding:1.2rem 1.3rem; background:var(--paper-raised);}
+  .tabpanel[hidden]{display:none;}
+  .tabpanel ul{margin:0; padding-left:1.1rem;}
+  .tabpanel li{margin-bottom:.5rem; font-size:.92rem;}
+  .tabpanel li:last-child{margin-bottom:0;}
+
+  /* roadmap */
+  .roadmap-note{font-family:'IBM Plex Mono'; font-size:.75rem; color:var(--ink-faint); margin-bottom:1.4rem; display:block;}
+  .roadmap{display:flex; gap:0; overflow-x:auto; padding-bottom:.5rem;}
+  .rm-step{flex:1 0 200px; position:relative; padding:0 1.1rem 0 0;}
+  .rm-step:not(:last-child)::after{
+    content:""; position:absolute; top:.55rem; right:0; width:1.1rem; height:1px; background:var(--line);
+  }
+  .rm-step .rm-head{display:flex; align-items:center; gap:.5rem; margin-bottom:.6rem;}
+  .rm-step .rm-dot{width:.65rem; height:.65rem; border-radius:50%; background:var(--marigold-fill); flex:none;}
+  .rm-step .rm-title{font-family:'IBM Plex Mono'; font-size:.78rem; font-weight:600; text-transform:uppercase; letter-spacing:.03em;}
+  .rm-step ul{margin:0; padding-left:1rem; font-size:.83rem; color:var(--ink-soft);}
+  .rm-step li{margin-bottom:.35rem;}
+
+  /* checklist */
+  .checklist{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:.6rem;}
+  .checklist li{
+    display:flex; gap:.8rem; align-items:flex-start; font-size:.94rem;
+    background:var(--paper-raised); border:1px solid var(--line); border-radius:.4rem; padding:.75rem .9rem;
+  }
+  .checklist .idx{font-family:'IBM Plex Mono'; color:var(--marigold); font-weight:600; flex:none;}
+
+  .status{display:inline-flex; align-items:center; gap:.35rem; font-family:'IBM Plex Mono'; font-size:.72rem; padding:.2rem .55rem; border-radius:99px; border:1px solid var(--line);}
+  .status.ok{color:var(--signal);} .status.ok .d{background:var(--signal-fill);}
+  .status.warn{color:var(--rust);} .status.warn .d{background:var(--rust-fill);}
+  .status .d{width:.4rem;height:.4rem;border-radius:50%;}
+
+  footer{padding:2.6rem 0 4rem; color:var(--ink-faint); font-size:.8rem;}
+  footer a{color:var(--marigold); text-decoration:none;}
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important; animation:none !important;}
+  }
+
+  /* ---------- UI mockups ---------- */
+  /* Fixed, self-contained palette: these panels represent a screenshot of the
+     product's own (light, high-glare-readable) UI, not the page chrome, so
+     they don't follow the page's light/dark tokens. */
+  .mockups{
+    --ui-bg:#F7F5EC; --ui-card:#FFFFFF; --ui-ink:#23261F; --ui-soft:#6B6F60;
+    --ui-faint:#9A9D8F; --ui-line:#E6E2D2; --ui-marigold:#C97F1E; --ui-signal:#187A5D;
+    --ui-rust:#A63F22; --ui-signal-bg:#E4F3EC; --ui-rust-bg:#F7E7E1; --ui-marigold-bg:#FBEEDA;
+  }
+  .mockup-grid{display:grid; grid-template-columns:1.15fr .85fr; gap:1.4rem; align-items:start;}
+  @media (max-width:860px){ .mockup-grid{grid-template-columns:1fr;} }
+  .mockup-grid.secondary{grid-template-columns:1fr 1fr; margin-top:1.4rem;}
+  @media (max-width:640px){ .mockup-grid.secondary{grid-template-columns:1fr;} }
+
+  .mockup{display:flex; flex-direction:column; gap:.7rem;}
+  .mockup .mockup-label{font-family:'IBM Plex Mono'; font-size:.72rem; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-faint); display:flex; align-items:center; gap:.5rem;}
+  .mockup .mockup-label .idx{color:var(--marigold);}
+
+  .device{background:#101210; border-radius:20px; padding:12px 12px 16px; box-shadow:0 12px 28px rgba(0,0,0,.16);}
+  .device .cam{width:6px; height:6px; border-radius:50%; background:#3a3d38; margin:0 auto 9px;}
+  .device .screen{background:var(--ui-bg); color:var(--ui-ink); border-radius:9px; overflow:hidden; font-family:'Work Sans', sans-serif; display:flex; flex-direction:column;}
+  .device.tablet .screen{aspect-ratio:4/3;}
+  .device.phone{width:76%; margin:0 auto; border-radius:26px; padding:9px;}
+  .device.phone .screen{aspect-ratio:9/18.5; border-radius:16px;}
+
+  .device.browser{background:var(--paper-raised); border:1px solid var(--line); border-radius:10px 10px 6px 6px; padding:0; box-shadow:none;}
+  .device.browser .chrome{display:flex; align-items:center; gap:.45rem; padding:.55rem .7rem; border-bottom:1px solid var(--line);}
+  .device.browser .chrome .dot{width:7px; height:7px; border-radius:50%; background:var(--line);}
+  .device.browser .chrome .url{font-family:'IBM Plex Mono'; font-size:.66rem; color:var(--ink-faint); background:var(--paper); border:1px solid var(--line); border-radius:99px; padding:.15rem .7rem; margin-left:.35rem;}
+  .device.browser .screen{aspect-ratio:16/9.2; border-radius:0;}
+
+  .ui-pad{padding:.7rem .75rem; display:flex; flex-direction:column; gap:.55rem; flex:1; min-height:0;}
+  .ui-topbar{display:flex; align-items:center; justify-content:space-between; font-size:.62rem; text-transform:uppercase; letter-spacing:.04em; color:var(--ui-faint);}
+  .ui-topbar b{color:var(--ui-ink); font-weight:700;}
+  .ui-online{display:inline-flex; align-items:center; gap:.3rem; color:var(--ui-signal);}
+  .ui-online i{width:.4rem; height:.4rem; border-radius:50%; background:var(--ui-signal); display:inline-block;}
+
+  .ui-card{background:var(--ui-card); border:1px solid var(--ui-line); border-radius:.55rem; padding:.65rem .75rem;}
+  .ui-attendee{display:flex; align-items:center; gap:.55rem;}
+  .ui-avatar{width:2.1rem; height:2.1rem; border-radius:50%; background:var(--ui-marigold-bg); color:var(--ui-marigold); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.7rem; font-family:'IBM Plex Mono'; flex:none;}
+  .ui-attendee .who{display:flex; flex-direction:column; gap:.1rem;}
+  .ui-attendee .name{font-weight:700; font-size:.78rem;}
+  .ui-attendee .uid{font-family:'IBM Plex Mono'; font-size:.62rem; color:var(--ui-faint);}
+  .ui-pill{font-family:'IBM Plex Mono'; font-size:.58rem; padding:.12rem .45rem; border-radius:99px; margin-left:auto; white-space:nowrap;}
+  .ui-pill.ok{background:var(--ui-signal-bg); color:var(--ui-signal);}
+  .ui-pill.warn{background:var(--ui-rust-bg); color:var(--ui-rust);}
+  .ui-pill.gold{background:var(--ui-marigold-bg); color:var(--ui-marigold);}
+
+  .mockups .cap{font-size:.6rem; text-transform:uppercase; letter-spacing:.05em; color:var(--ui-faint); display:block;}
+  .ui-balance{display:flex; align-items:baseline; justify-content:space-between; margin-top:.5rem;}
+  .ui-balance .amt{font-family:'IBM Plex Mono'; font-weight:600; font-size:1.35rem; letter-spacing:-.01em;}
+  .ui-balance .cap{font-size:.6rem; text-transform:uppercase; letter-spacing:.05em; color:var(--ui-faint);}
+
+  .ui-hist{display:flex; gap:.4rem; overflow-x:hidden;}
+  .ui-hist span{font-family:'IBM Plex Mono'; font-size:.58rem; color:var(--ui-soft); background:var(--ui-bg); border:1px solid var(--ui-line); border-radius:.3rem; padding:.15rem .4rem; white-space:nowrap;}
+
+  .ui-amountpad{margin-top:auto; display:flex; flex-direction:column; gap:.5rem;}
+  .ui-amount-display{font-family:'IBM Plex Mono'; font-size:1.6rem; font-weight:600; text-align:center; padding:.3rem 0;}
+  .ui-quick{display:flex; gap:.35rem;}
+  .ui-quick button{flex:1; font-family:'IBM Plex Mono'; font-size:.62rem; background:var(--ui-card); border:1px solid var(--ui-line); color:var(--ui-soft); border-radius:.35rem; padding:.32rem 0;}
+  .ui-keys{display:grid; grid-template-columns:repeat(3,1fr); gap:.3rem;}
+  .ui-keys span{background:var(--ui-card); border:1px solid var(--ui-line); border-radius:.35rem; text-align:center; padding:.28rem 0; font-family:'IBM Plex Mono'; font-size:.72rem; color:var(--ui-ink);}
+  .ui-cta{background:var(--ui-signal); color:#F4FBF7; text-align:center; font-weight:700; font-size:.82rem; letter-spacing:.02em; border-radius:.4rem; padding:.6rem 0; text-transform:uppercase;}
+  .ui-cta.gold{background:var(--ui-marigold); color:#2A1B06;}
+  .ui-cta.ghost{background:transparent; border:1px dashed var(--ui-line); color:var(--ui-rust); font-weight:600;}
+
+  .ui-field{display:flex; flex-direction:column; gap:.15rem;}
+  .ui-field label{font-size:.58rem; text-transform:uppercase; letter-spacing:.05em; color:var(--ui-faint);}
+  .ui-field .val{background:var(--ui-card); border:1px solid var(--ui-line); border-radius:.35rem; padding:.34rem .55rem; font-size:.72rem;}
+
+  .ui-kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:.5rem;}
+  .ui-kpi{background:var(--ui-card); border:1px solid var(--ui-line); border-radius:.5rem; padding:.5rem .55rem;}
+  .ui-kpi .cap{font-size:.56rem; text-transform:uppercase; letter-spacing:.04em; color:var(--ui-faint); display:block; margin-bottom:.2rem;}
+  .ui-kpi .val{font-family:'IBM Plex Mono'; font-weight:700; font-size:.92rem;}
+  .ui-kpi .trend{font-size:.58rem; color:var(--ui-signal); font-family:'IBM Plex Mono';}
+
+  .ui-feed{display:flex; flex-direction:column; gap:.32rem; overflow:hidden;}
+  .ui-feed-row{display:grid; grid-template-columns:auto 1fr auto auto; gap:.5rem; align-items:center; background:var(--ui-card); border:1px solid var(--ui-line); border-radius:.4rem; padding:.32rem .55rem; font-size:.66rem;}
+  .ui-feed-row .branch{color:var(--ui-soft);}
+  .ui-feed-row .amt{font-family:'IBM Plex Mono'; font-weight:600;}
+  .ui-feed-row .amt.neg{color:var(--ui-rust);}
+  .ui-feed-row .amt.pos{color:var(--ui-signal);}
+  .ui-feed-row .time{font-family:'IBM Plex Mono'; color:var(--ui-faint); font-size:.6rem;}
+
+  .ui-chart{background:var(--ui-card); border:1px solid var(--ui-line); border-radius:.5rem; padding:.5rem .6rem .35rem;}
+  .ui-chart svg{width:100%; height:auto; display:block;}
+
+  .ui-qr{width:4.6rem; height:4.6rem; border-radius:.4rem; background:
+      repeating-linear-gradient(90deg, var(--ui-ink) 0 3px, transparent 3px 6px),
+      repeating-linear-gradient(0deg, var(--ui-ink) 0 3px, transparent 3px 6px);
+    background-blend-mode:multiply; background-color:#fff; margin:0 auto; opacity:.85;}
+</style>
+</head>
+<body>
+
+<a class="skip" href="#resumen">Saltar al contenido</a>
+
+<div class="topbar">
+  <span class="brand">PrismaCash</span>
+  <button id="tocToggle" aria-expanded="false" aria-controls="sidebar">☰ Índice</button>
+</div>
+
+<div class="shell">
+  <nav class="toc" id="sidebar" hidden>
+    <span class="toc-brand">PrismaCash<span class="dot">/plan</span></span>
+    <span class="toc-sub">v1.0 · 2026‑09‑04</span>
+    <ol>
+      <li><a href="#resumen" data-n="1"><span class="n">01</span>Resumen ejecutivo</a></li>
+      <li><a href="#alcance" data-n="2"><span class="n">02</span>Alcance por fases</a></li>
+      <li><a href="#arquitectura" data-n="3"><span class="n">03</span>Arquitectura</a></li>
+      <li><a href="#datos" data-n="4"><span class="n">04</span>Modelo de datos</a></li>
+      <li><a href="#transaccional" data-n="5"><span class="n">05</span>Lógica transaccional</a></li>
+      <li><a href="#legal" data-n="6"><span class="n">06</span>Encuadre legal</a></li>
+      <li><a href="#seguridad" data-n="7"><span class="n">07</span>Seguridad y roles</a></li>
+      <li><a href="#frontend" data-n="8"><span class="n">08</span>Frontend PWA</a></li>
+      <li><a href="#movil" data-n="9"><span class="n">09</span>App móvil</a></li>
+      <li><a href="#escala" data-n="10"><span class="n">10</span>Escalabilidad</a></li>
+      <li><a href="#despliegue" data-n="11"><span class="n">11</span>Despliegue</a></li>
+      <li><a href="#sprints" data-n="12"><span class="n">12</span>Roadmap</a></li>
+      <li><a href="#riesgos" data-n="13"><span class="n">13</span>Riesgos</a></li>
+      <li><a href="#siguientes" data-n="14"><span class="n">14</span>Próximos pasos</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <div class="cover">
+      <span class="eyebrow">Plan de implementación · documento v1.0</span>
+      <h1>PrismaCash</h1>
+      <p class="tagline">Pulseras y códigos QR contactless para ferias, picnics y eventos: recarga en el quiosco, cobro en cada punto de venta, saldo verificado y registrado en tiempo real.</p>
+      <div class="chips">
+        <span class="chip">React + Vite + Tailwind</span>
+        <span class="chip">Supabase (Postgres · RLS · Realtime)</span>
+        <span class="chip">Vercel</span>
+        <span class="chip">PWA · NFC / QR</span>
+        <span class="chip">Expo (Fase 2)</span>
+      </div>
+      <div class="flow3">
+        <div class="step"><span class="num">01 · quiosco</span><h4>Recarga</h4><p>El asistente compra un dispositivo; el operador lo activa y carga un monto X en su wallet.</p></div>
+        <div class="step"><span class="num">02 · punto de venta</span><h4>Pago</h4><p>Se escanea NFC o QR según el evento, se verifica saldo y estado, se descuenta y se registra.</p></div>
+        <div class="step"><span class="num">03 · autogestión</span><h4>Reembolso / bloqueo</h4><p>Saldo no usado se reembolsa; un dispositivo extraviado se bloquea y se reemplaza sin perder historial.</p></div>
+      </div>
+    </div>
+
+    <!-- 01 RESUMEN -->
+    <section id="resumen">
+      <div class="head"><span class="tag-num">01</span><h2>Resumen ejecutivo</h2></div>
+      <p class="lede">Sistema SaaS multi‑evento: los organizadores venden pulseras/llaveros NFC o códigos QR a los asistentes, recargan saldo en un quiosco y cobran en N puntos de venta escaneando el dispositivo — todo con dashboard en tiempo real y roles por sucursal.</p>
+      <div class="callout decision">
+        <h4>Decisiones de producto cerradas</h4>
+        <ul>
+          <li><strong>Multi‑tenancy:</strong> un único proyecto Supabase compartido por todos los eventos/clientes que alquilen el servicio, aislado por <code>event_id</code> vía RLS — no un proyecto por cliente.</li>
+          <li><strong>Naturaleza del saldo:</strong> crédito cerrado de uso interno del evento, no dinero electrónico transferible — detalle en <a href="#legal">sección 06</a>.</li>
+          <li><strong>App móvil nativa:</strong> Fase 2, después de validar el MVP web en un evento real.</li>
+          <li><strong>Cronograma:</strong> guía flexible de secuencia de trabajo para un desarrollador, sin fecha de evento piloto comprometida.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 02 ALCANCE -->
+    <section id="alcance">
+      <div class="head"><span class="tag-num">02</span><h2>Alcance por fases</h2></div>
+      <p class="lede">El MVP cubre el ciclo operativo completo de un evento. Todo lo que depende de un piloto real validado se empuja a fases posteriores.</p>
+      <div class="tabs" role="tablist" aria-label="Fases del producto">
+        <button role="tab" id="tab-f1" aria-controls="panel-f1" aria-selected="true">Fase 1 · MVP</button>
+        <button role="tab" id="tab-f2" aria-controls="panel-f2" aria-selected="false">Fase 2 · Complementos</button>
+        <button role="tab" id="tab-f3" aria-controls="panel-f3" aria-selected="false">Fase 3 · Escala</button>
+      </div>
+      <div class="tabpanel" role="tabpanel" id="panel-f1" aria-labelledby="tab-f1">
+        <ul>
+          <li>Registro y configuración de eventos (solo <code>super_admin</code>): nombre, paleta, logo, tipo de dispositivo (NFC o QR).</li>
+          <li>Gestión de sucursales/terminales: quiosco de recarga + N puntos de venta.</li>
+          <li>Usuarios y roles: <code>super_admin</code>, <code>event_admin</code>, <code>operator</code> asignado a su sucursal.</li>
+          <li>Registro de asistente + asignación de dispositivo (ID único) + recarga inicial.</li>
+          <li>Cobro: escaneo → verificación → débito → registro de transacción.</li>
+          <li>Bloqueo de dispositivo extraviado + reasignación con migración de saldo.</li>
+          <li>Dashboard en tiempo real: ventas, transacciones, saldo circulante, terminales activas.</li>
+          <li>Historial de transacciones (id, fecha/hora, sucursal, monto, tipo).</li>
+        </ul>
+      </div>
+      <div class="tabpanel" role="tabpanel" id="panel-f2" aria-labelledby="tab-f2" hidden>
+        <ul>
+          <li>App móvil (Expo): autogestión de saldo, historial, solicitud de reembolso.</li>
+          <li>Reportes exportables (CSV / Excel / PDF).</li>
+          <li>Recarga online con pasarela (Stripe, Mercado Pago o institución bancaria) desde la app.</li>
+          <li>Modo offline tolerante en puntos de venta: cola local + sincronización idempotente.</li>
+        </ul>
+      </div>
+      <div class="tabpanel" role="tabpanel" id="panel-f3" aria-labelledby="tab-f3" hidden>
+        <ul>
+          <li>Múltiples eventos simultáneos con aislamiento total de datos.</li>
+          <li>Analítica avanzada: heatmaps de consumo por hora / terminal / producto.</li>
+          <li>API pública y webhooks para integraciones externas.</li>
+          <li>Kioscos en modo pantalla completa bloqueada (kiosk mode).</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 03 ARQUITECTURA -->
+    <section id="arquitectura">
+      <div class="head"><span class="tag-num">03</span><h2>Arquitectura</h2></div>
+      <p class="lede">Supabase como backend único: Postgres con RLS resuelve el multi‑tenant, las Edge Functions son la única puerta de entrada para mutar saldo. Vercel solo construye y sirve el frontend — nunca toca el dinero.</p>
+      <figure class="diagram">
+        <svg viewBox="0 0 900 460" role="img" aria-label="Los tres clientes (PWA admin, PWA quiosco/POS, app móvil) se conectan a un único proyecto Supabase. Las lecturas van directas a Auth, Realtime y Storage bajo RLS; todas las escrituras de saldo pasan obligatoriamente por las Edge Functions con bloqueo por dispositivo antes de tocar Postgres. Vercel solo construye y despliega el frontend.">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+            </marker>
+          </defs>
+          <style>
+            text{font-family:'IBM Plex Mono', monospace; fill:currentColor;}
+            .lbl{font-size:11px; fill:currentColor; opacity:.65;}
+            .box{fill:none; stroke:currentColor; stroke-width:1.3;}
+            .boxfill{stroke:currentColor; stroke-width:1.3;}
+            line, path.edge{stroke:currentColor; stroke-width:1.3; fill:none;}
+          </style>
+
+          <!-- vercel bar -->
+          <rect x="30" y="8" width="545" height="32" rx="4" class="box" stroke-dasharray="3 3" opacity=".7"/>
+          <text x="302" y="28" font-size="11" text-anchor="middle" opacity=".75">VERCEL — build &amp; deploy continuo desde Git</text>
+          <path class="edge" d="M155,40 L155,58" stroke-dasharray="3 3" marker-end="url(#arrow)" opacity=".7"/>
+          <path class="edge" d="M450,40 L450,58" stroke-dasharray="3 3" marker-end="url(#arrow)" opacity=".7"/>
+
+          <!-- client row -->
+          <rect x="30" y="58" width="250" height="62" rx="6" class="box"/>
+          <text x="155" y="84" font-size="12.5" font-weight="600" text-anchor="middle">PWA Admin</text>
+          <text x="155" y="102" class="lbl" text-anchor="middle">event_admin · super_admin</text>
+
+          <rect x="325" y="58" width="250" height="62" rx="6" class="box"/>
+          <text x="450" y="84" font-size="12.5" font-weight="600" text-anchor="middle">PWA Quiosco / POS</text>
+          <text x="450" y="102" class="lbl" text-anchor="middle">operator · tablet</text>
+
+          <rect x="620" y="58" width="250" height="62" rx="6" class="box"/>
+          <text x="745" y="84" font-size="12.5" font-weight="600" text-anchor="middle">App móvil asistente</text>
+          <text x="745" y="102" class="lbl" text-anchor="middle">Fase 2 · Expo · EAS</text>
+
+          <!-- collector bus -->
+          <path class="edge" d="M155,120 L155,150" marker-end="url(#arrow)"/>
+          <path class="edge" d="M450,120 L450,150" marker-end="url(#arrow)"/>
+          <path class="edge" d="M745,120 L745,150" marker-end="url(#arrow)"/>
+          <line x1="155" y1="150" x2="745" y2="150"/>
+
+          <!-- split arrows -->
+          <path class="edge" d="M300,150 L220,178" marker-end="url(#arrow)"/>
+          <path class="edge" d="M600,150 L665,178" marker-end="url(#arrow)"/>
+          <text x="260" y="168" class="lbl" text-anchor="middle">lecturas</text>
+          <text x="640" y="168" class="lbl" text-anchor="middle">escrituras</text>
+
+          <!-- left box: reads -->
+          <rect x="30" y="180" width="380" height="92" rx="6" class="box"/>
+          <text x="220" y="206" font-size="12.5" font-weight="600" text-anchor="middle">Auth · Realtime · Storage</text>
+          <text x="220" y="224" class="lbl" text-anchor="middle">saldo, historial, branding — RLS por event_id</text>
+          <text x="220" y="250" class="lbl" text-anchor="middle" font-style="italic">dashboard suscrito a postgres_changes</text>
+
+          <!-- right box: writes -->
+          <rect x="460" y="180" width="410" height="92" rx="6" class="box" stroke="var(--marigold)"/>
+          <text x="665" y="206" font-size="12.5" font-weight="700" text-anchor="middle">Edge Functions</text>
+          <text x="665" y="224" class="lbl" text-anchor="middle">issue-device · charge · block-and-replace · refund</text>
+          <text x="665" y="250" class="lbl" text-anchor="middle" font-style="italic">advisory lock por device_uid — única puerta de escritura</text>
+
+          <!-- down to postgres -->
+          <path class="edge" d="M220,272 L220,310" marker-end="url(#arrow)"/>
+          <path class="edge" d="M665,272 L665,310" marker-end="url(#arrow)"/>
+          <text x="150" y="296" class="lbl">SELECT</text>
+          <text x="705" y="296" class="lbl">UPDATE bajo lock</text>
+
+          <rect x="140" y="312" width="620" height="70" rx="6" class="box"/>
+          <text x="450" y="340" font-size="12.5" font-weight="600" text-anchor="middle">PostgreSQL — wallets · transactions · devices · events</text>
+          <text x="450" y="358" class="lbl" text-anchor="middle">RLS por event_id · transactions es append-only</text>
+
+          <!-- storage aside -->
+          <text x="450" y="410" class="lbl" text-anchor="middle" opacity=".55">un solo proyecto Supabase compartido entre todos los eventos alquilados</text>
+        </svg>
+      </figure>
+      <figcaption>Las lecturas (saldo, historial, dashboard) van directas a Postgres bajo RLS; toda mutación de saldo está forzada a pasar por las Edge Functions, que toman un bloqueo por dispositivo antes de escribir. Vercel solo construye y sirve el frontend — no participa en el runtime del dinero.</figcaption>
+    </section>
+
+    <!-- 04 MODELO DE DATOS -->
+    <section id="datos">
+      <div class="head"><span class="tag-num">04</span><h2>Modelo de datos</h2></div>
+      <p class="lede">Postgres sobre Supabase. El saldo vive separado de la identidad (<code>wallets</code> vs <code>devices</code>/<code>attendees</code>) y el <code>ledger</code> de transacciones nunca se edita ni se borra.</p>
+
+      <details class="schema" open>
+        <summary>Ver esquema SQL completo</summary>
+        <div class="terminal">
+          <div class="terminal-bar"><span class="d"></span><span class="d"></span><span class="d"></span><span class="label">schema.sql</span></div>
+<span class="c">-- ══ multitenant ══</span>
+<span class="k">organizations</span>      <span class="c">-- tenant raíz (tu empresa, arrienda el servicio)</span>
+  id, name, slug, plan, created_at
+
+<span class="k">events</span>             <span class="c">-- cada feria / picnic / evento</span>
+  id, org_id → organizations, name, slug, status (draft|active|closed),
+  device_type (nfc|qr|hybrid), brand_primary, brand_secondary, logo_url,
+  currency, max_balance, refund_policy (jsonb), starts_at, ends_at
+
+<span class="c">-- ══ ubicaciones y usuarios ══</span>
+<span class="k">branches</span>           <span class="c">-- "sucursales": quiosco de recarga, chinamos, puntos de venta</span>
+  id, event_id → events, name, type (recharge_kiosk|sales_point|both), is_active
+
+<span class="k">terminals</span>          <span class="c">-- dispositivo físico dentro de una sucursal</span>
+  id, branch_id → branches, device_label, last_seen_at, is_active
+
+<span class="k">profiles</span>           <span class="c">-- extiende auth.users</span>
+  id → auth.users, org_id, full_name, phone, role (super_admin|event_admin|operator)
+
+<span class="k">branch_members</span>     <span class="c">-- asignación usuario ↔ sucursal (rota por turno)</span>
+  id, user_id → profiles, branch_id → branches, assigned_at
+
+<span class="c">-- ══ dispositivos y saldos ══</span>
+<span class="k">devices</span>            <span class="c">-- pulsera / llavero NFC o código QR</span>
+  id, event_id → events, uid <span class="t">(único: ID NFC / contenido QR)</span>,
+  type (nfc|qr), status (unassigned|active|blocked|retired),
+  assigned_profile_id → attendees, replaced_by → devices
+
+<span class="k">wallets</span>            <span class="c">-- una por dispositivo — separa saldo de identidad</span>
+  id, device_id → devices <span class="t">(unique)</span>, balance numeric(12,2),
+  version int <span class="c">-- concurrencia optimista</span>, updated_at
+
+<span class="k">attendees</span>          <span class="c">-- persona registrada en el quiosco</span>
+  id, event_id, full_name, phone, email, document_id
+
+<span class="c">-- ══ transacciones — append-only, nunca se edita ni se borra ══</span>
+<span class="k">transactions</span>
+  id uuid pk, event_id, branch_id, terminal_id, device_id,
+  type (initial_load|topup|payment|refund|migration_out|migration_in|adjustment),
+  amount numeric(12,2), balance_before, balance_after,
+  attendant_id → profiles, metadata jsonb, created_at
+
+<span class="k">refund_requests</span>    <span class="c">-- solicitudes desde la app móvil</span>
+  id, device_id, amount, status (pending|approved|rejected|paid),
+  requested_by, processed_by, processed_at
+        </div>
+      </details>
+
+      <div class="grid-2" style="margin-top:1.4rem;">
+        <div class="callout">
+          <h4>Reglas de integridad</h4>
+          <ul>
+            <li><code>devices.uid</code> único por evento; nunca se reutiliza.</li>
+            <li><code>wallets.balance</code> solo se muta dentro de una Edge Function.</li>
+            <li><code>transactions</code> es append-only — <code>UPDATE</code>/<code>DELETE</code> revocado por RLS.</li>
+          </ul>
+        </div>
+        <div class="callout">
+          <h4>Índices críticos</h4>
+          <ul>
+            <li><code class="mono">(event_id, created_at desc)</code></li>
+            <li><code class="mono">(device_id, created_at desc)</code></li>
+            <li><code class="mono">(branch_id, created_at)</code></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 05 TRANSACCIONAL -->
+    <section id="transaccional">
+      <div class="head"><span class="tag-num">05</span><h2>Lógica transaccional atómica</h2></div>
+      <p class="lede">Toda mutación de saldo corre en una Edge Function con <code>pg_advisory_xact_lock(device_id)</code>, para que dos terminales cobrando al mismo dispositivo a la vez nunca produzcan saldo negativo. Objetivo de rendimiento: <strong>&lt; 300&nbsp;ms</strong> por cobro.</p>
+
+      <figure class="diagram">
+        <svg viewBox="0 0 940 300" role="img" aria-label="Flujo del cobro: se escanea el dispositivo, y se verifican en cadena existencia, estado activo y saldo suficiente. Cualquier verificación fallida termina en un error sin ninguna mutación de base de datos. Solo si las tres pasan se toma el bloqueo, se descuenta el saldo y se registra la transacción.">
+          <defs>
+            <marker id="arrow2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+            </marker>
+          </defs>
+          <style>
+            text{font-family:'IBM Plex Mono', monospace; fill:currentColor;}
+            .lbl2{font-size:10.5px; opacity:.65;}
+            .node{fill:none; stroke:currentColor; stroke-width:1.3;}
+            .diamond{fill:none; stroke:currentColor; stroke-width:1.3;}
+            .edge2{stroke:currentColor; stroke-width:1.3; fill:none;}
+            .no{stroke-dasharray:3 3; opacity:.7;}
+          </style>
+
+          <rect x="10" y="45" width="130" height="50" rx="6" class="node"/>
+          <text x="75" y="66" font-size="11" text-anchor="middle" font-weight="600">Escaneo</text>
+          <text x="75" y="82" class="lbl2" text-anchor="middle">NFC / QR → uid</text>
+
+          <path class="edge2" d="M140,70 L175,70" marker-end="url(#arrow2)"/>
+          <polygon points="175,70 235,40 295,70 235,100" class="diamond"/>
+          <text x="235" y="66" font-size="10.5" text-anchor="middle">¿existe +</text>
+          <text x="235" y="79" font-size="10.5" text-anchor="middle">evento coincide?</text>
+
+          <path class="edge2" d="M295,70 L330,70" marker-end="url(#arrow2)"/>
+          <text x="312" y="62" class="lbl2" text-anchor="middle">sí</text>
+          <polygon points="330,70 390,40 450,70 390,100" class="diamond"/>
+          <text x="390" y="66" font-size="10.5" text-anchor="middle">¿status</text>
+          <text x="390" y="79" font-size="10.5" text-anchor="middle">= active?</text>
+
+          <path class="edge2" d="M450,70 L485,70" marker-end="url(#arrow2)"/>
+          <text x="467" y="62" class="lbl2" text-anchor="middle">sí</text>
+          <polygon points="485,70 550,40 615,70 550,100" class="diamond"/>
+          <text x="550" y="66" font-size="10.5" text-anchor="middle">¿balance ≥</text>
+          <text x="550" y="79" font-size="10.5" text-anchor="middle">monto?</text>
+
+          <path class="edge2" d="M615,70 L650,70" marker-end="url(#arrow2)"/>
+          <text x="632" y="62" class="lbl2" text-anchor="middle">sí</text>
+          <rect x="650" y="35" width="150" height="70" rx="6" class="node" stroke="var(--marigold)"/>
+          <text x="725" y="60" font-size="11" text-anchor="middle" font-weight="700">Lock + UPDATE</text>
+          <text x="725" y="75" font-size="11" text-anchor="middle" font-weight="700">wallet + INSERT tx</text>
+          <text x="725" y="93" class="lbl2" text-anchor="middle">advisory_xact_lock</text>
+
+          <path class="edge2" d="M800,70 L835,70" marker-end="url(#arrow2)"/>
+          <rect x="835" y="45" width="95" height="50" rx="6" class="node" stroke="var(--signal)"/>
+          <text x="882" y="66" font-size="11" text-anchor="middle" font-weight="700">OK</text>
+          <text x="882" y="82" class="lbl2" text-anchor="middle">new_balance</text>
+
+          <!-- no branches -->
+          <path class="edge2 no" d="M235,100 L235,190" marker-end="url(#arrow2)"/>
+          <text x="248" y="150" class="lbl2">no</text>
+          <rect x="160" y="192" width="150" height="55" rx="6" class="node" stroke="var(--rust)"/>
+          <text x="235" y="213" font-size="10.5" text-anchor="middle" font-weight="600">error: not_found</text>
+          <text x="235" y="230" class="lbl2" text-anchor="middle">sin mutación</text>
+
+          <path class="edge2 no" d="M390,100 L390,190" marker-end="url(#arrow2)"/>
+          <text x="403" y="150" class="lbl2">no</text>
+          <rect x="315" y="192" width="150" height="55" rx="6" class="node" stroke="var(--rust)"/>
+          <text x="390" y="213" font-size="10.5" text-anchor="middle" font-weight="600">error: blocked</text>
+          <text x="390" y="230" class="lbl2" text-anchor="middle">sin mutación</text>
+
+          <path class="edge2 no" d="M550,100 L550,190" marker-end="url(#arrow2)"/>
+          <text x="563" y="150" class="lbl2">no</text>
+          <rect x="470" y="192" width="160" height="55" rx="6" class="node" stroke="var(--rust)"/>
+          <text x="550" y="213" font-size="10.5" text-anchor="middle" font-weight="600">error: insufficient_funds</text>
+          <text x="550" y="230" class="lbl2" text-anchor="middle">sin mutación</text>
+        </svg>
+      </figure>
+      <figcaption>El único camino que toca la base de datos es el de la derecha; los tres caminos de error terminan sin escribir nada, así que un reintento tras un fallo nunca duplica ni corrompe el saldo.</figcaption>
+
+      <div class="grid-2" style="margin-top:1.6rem;">
+        <div class="callout">
+          <h4>issue-device · quiosco de recarga</h4>
+          <ul>
+            <li>Valida rol y pertenencia a la sucursal.</li>
+            <li>Crea/actualiza <code>attendee</code>, crea <code>devices</code> + <code>wallets(balance=0)</code>.</li>
+            <li>Ejecuta <code>initial_load</code> en la misma transacción y devuelve <code class="mono">{device_uid, balance}</code>.</li>
+          </ul>
+        </div>
+        <div class="callout">
+          <h4>block-and-replace · dispositivo extraviado</h4>
+          <ul>
+            <li>Bloquea el dispositivo viejo (<code>status=blocked</code>) en la misma transacción.</li>
+            <li>Crea el nuevo y migra el saldo con <code>migration_out</code> / <code>migration_in</code>.</li>
+            <li>El historial del asistente queda íntegro — nada se pierde.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 06 LEGAL -->
+    <section id="legal">
+      <div class="head"><span class="tag-num">06</span><h2>Encuadre legal del saldo</h2></div>
+      <div class="callout legal">
+        <h4>⚠ Crédito cerrado, no dinero electrónico</h4>
+        <p style="margin-bottom:.8rem;"><strong>El saldo cargado en un dispositivo es un crédito cerrado de uso interno del evento — no es dinero electrónico ni un instrumento de pago transferible.</strong> Evita que el sistema deba tratarse como un emisor regulado (en Costa Rica, actividad supervisada por la SUGEF) y sigue el estándar de la industria de festivales con pulseras cashless cerradas.</p>
+        <ul>
+          <li><strong>No es retirable a terceros:</strong> no se transfiere entre dispositivos ni a cuentas bancarias o billeteras de terceros — solo se consume en el evento o se reembolsa a quien lo cargó.</li>
+          <li><strong>Reembolso = devolución del saldo no consumido</strong>, no un pago. En el MVP se entrega en efectivo o revirtiendo el medio de pago original, en el propio quiosco — sin retiro bancario ni transferencia P2P.</li>
+          <li><strong>Términos aceptados en la recarga inicial:</strong> checkbox o firma en tablet declarando que el saldo es un crédito de uso exclusivo del evento, no transferible, reembolsable según política — texto a validar con asesoría legal antes de operar a escala.</li>
+          <li><strong>refund_policy (jsonb)</strong> debe fijar ventana de reembolso, montos mínimo/máximo y comisión administrativa si aplica.</li>
+          <li>Ofrecer recarga online + reembolso bancario (posible extensión de la app móvil) acerca el saldo a un instrumento de dinero electrónico y <strong>exige revisión legal previa</strong> — no se construye sin validar ese punto primero.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 07 SEGURIDAD -->
+    <section id="seguridad">
+      <div class="head"><span class="tag-num">07</span><h2>Seguridad y roles</h2></div>
+      <p class="lede">Row Level Security de Supabase con claims de evento en el JWT. El alcance se estrecha en cada nivel — nadie ve más de lo que su rol necesita.</p>
+      <div class="funnel">
+        <div class="rank r1"><div class="role"><span class="bar"></span>super_admin</div><div class="scope">Organizaciones, eventos, branding — lectura total entre eventos</div></div>
+        <div class="rank r2"><div class="role"><span class="bar"></span>event_admin</div><div class="scope">Sucursales, terminales y usuarios <strong>dentro de su evento</strong>; aprueba reembolsos; cierra el evento</div></div>
+        <div class="rank r3"><div class="role"><span class="bar"></span>operator</div><div class="scope">Solo su terminal/sucursal: issue-device, charge, block-and-replace</div></div>
+        <div class="rank r4"><div class="role"><span class="bar"></span>attendee</div><div class="scope">Solo su propio dispositivo, saldo e historial — vía app móvil</div></div>
+      </div>
+      <div class="grid-2" style="margin-top:1.4rem;">
+        <div class="callout">
+          <h4>Implementación</h4>
+          <ul>
+            <li>Toda tabla lleva <code>event_id</code>; política RLS lee claims del JWT (<code>custom_access_token_hook</code>: org_id, event_id, role).</li>
+            <li>Los operadores nunca consultan saldo libre — las funciones de cobro devuelven solo lo necesario.</li>
+          </ul>
+        </div>
+        <div class="callout">
+          <h4>Endurecimiento</h4>
+          <ul>
+            <li>Rate limiting en Edge Functions.</li>
+            <li><code>terminal_id</code> validado contra el usuario autenticado.</li>
+            <li>Tests automáticos de aislamiento entre eventos en CI.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 08 FRONTEND -->
+    <section id="frontend">
+      <div class="head"><span class="tag-num">08</span><h2>Frontend PWA</h2></div>
+      <p class="lede">Prioridad número uno: velocidad en el punto de venta. Todo lo demás — branding, dashboard, rutas — se organiza alrededor de eso.</p>
+
+      <div class="grid-2">
+        <div>
+          <h4 style="font-size:.95rem; text-transform:none; font-weight:700; margin-bottom:.6rem;">UX del punto de venta</h4>
+          <ol class="checklist" style="list-style:none;">
+            <li><span class="idx">1</span>Pantalla en espera de escaneo (cámara / NFC activo).</li>
+            <li><span class="idx">2</span>Escaneo automático → tarjeta con nombre, saldo, últimos 3 consumos.</li>
+            <li><span class="idx">3</span>Teclado numérico gigante + botón "COBRAR" a pantalla completa.</li>
+            <li><span class="idx">4</span>Feedback triple: vibración, sonido, flash verde/rojo.</li>
+          </ol>
+        </div>
+        <div>
+          <h4 style="font-size:.95rem; text-transform:none; font-weight:700; margin-bottom:.6rem;">NFC / QR en la PWA</h4>
+          <p style="font-size:.92rem; color:var(--ink-soft);">Web NFC (<code>NDEFReader</code>) solo existe en Android/Chrome — las terminales iOS operan en modo QR con <code>html5-qrcode</code>. El evento se configura como <code>nfc</code>, <code>qr</code> o <code>hybrid</code>, y la terminal activa el lector correspondiente.</p>
+          <p style="font-size:.92rem; color:var(--ink-soft); margin-top:.7rem;">Branding dinámico: al cargar <code>/e/:eventSlug</code> se inyectan <code>--brand-primary</code> / <code>--brand-secondary</code>, logo y <code>theme-color</code> desde la config del evento.</p>
+        </div>
+      </div>
+
+      <details class="schema" style="margin-top:1.4rem;">
+        <summary>Ver estructura de rutas</summary>
+        <div class="terminal">
+<span class="k">/login</span>                        → selección de evento + credenciales
+<span class="k">/e/:eventSlug/admin/*</span>          → panel admin de evento
+  ├─ dashboard                → tiempo real
+  ├─ branches                 → CRUD sucursales/terminales
+  ├─ staff                    → usuarios y asignaciones
+  ├─ devices                  → inventario, bloqueos, reemplazos
+  ├─ transactions             → historial + filtros + export
+  └─ refunds                  → aprobaciones
+<span class="k">/e/:eventSlug/kiosk</span>            → modo quiosco (registro + recarga)
+<span class="k">/e/:eventSlug/pos</span>              → modo punto de venta (cobro rápido)
+        </div>
+      </details>
+
+      <div class="tablewrap" style="margin-top:1.4rem;">
+        <table>
+          <thead><tr><th>Necesidad</th><th>Librería</th></tr></thead>
+          <tbody>
+            <tr><td>Routing</td><td class="mono">react-router-dom v6</td></tr>
+            <tr><td>Estado servidor</td><td class="mono">@tanstack/react-query + supabase-js</td></tr>
+            <tr><td>UI / estilos</td><td class="mono">tailwindcss + shadcn/ui + framer-motion</td></tr>
+            <tr><td>Formularios</td><td class="mono">react-hook-form + zod</td></tr>
+            <tr><td>QR</td><td class="mono">html5-qrcode (lectura) · qrcode.react (generación)</td></tr>
+            <tr><td>Gráficas</td><td class="mono">recharts</td></tr>
+            <tr><td>PWA</td><td class="mono">vite-plugin-pwa (Workbox)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4 style="font-size:.95rem; text-transform:none; font-weight:700; margin:2rem 0 .3rem;">8.7 Mockups de interfaz</h4>
+      <p class="lede" style="margin-bottom:1.3rem;">Boceto de las cuatro pantallas que definen el producto. La UI usa un fondo claro de alto contraste — pensado para tablets al sol en un chinamo, no para una sala oscura.</p>
+
+      <div class="mockups">
+        <div class="mockup-grid">
+          <div class="mockup">
+            <span class="mockup-label"><span class="idx">→</span>Punto de venta · tablet del vendedor</span>
+            <div class="device tablet">
+              <div class="cam"></div>
+              <div class="screen">
+                <div class="ui-pad">
+                  <div class="ui-topbar"><b>Chinamo 3 · Terminal 07</b><span class="ui-online"><i></i>en línea</span></div>
+                  <div class="ui-card">
+                    <div class="ui-attendee">
+                      <div class="ui-avatar">MF</div>
+                      <div class="who">
+                        <span class="name">María Fernández</span>
+                        <span class="uid">NFC · A93F0C21</span>
+                      </div>
+                      <span class="ui-pill ok">activo</span>
+                    </div>
+                    <div class="ui-balance"><span class="cap">Saldo disponible</span><span class="amt">₡8.450</span></div>
+                    <div class="ui-hist" style="margin-top:.5rem;">
+                      <span>-₡1.200 comida</span><span>-₡800 bebida</span><span>+₡10.000 recarga</span>
+                    </div>
+                  </div>
+                  <div class="ui-amountpad">
+                    <div class="ui-amount-display">₡2.000</div>
+                    <div class="ui-quick"><button>₡500</button><button>₡1.000</button><button>₡2.000</button><button>₡5.000</button></div>
+                    <div class="ui-keys">
+                      <span>1</span><span>2</span><span>3</span>
+                      <span>4</span><span>5</span><span>6</span>
+                      <span>7</span><span>8</span><span>9</span>
+                      <span>.</span><span>0</span><span>⌫</span>
+                    </div>
+                    <div class="ui-cta">Cobrar ₡2.000</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mockup">
+            <span class="mockup-label"><span class="idx">→</span>Quiosco de recarga · registro y bloqueo</span>
+            <div class="device tablet">
+              <div class="cam"></div>
+              <div class="screen">
+                <div class="ui-pad">
+                  <div class="ui-topbar"><b>Quiosco · Entrada principal</b><span class="ui-online"><i></i>en línea</span></div>
+                  <div class="ui-field"><label>Nombre del asistente</label><div class="val">María Fernández</div></div>
+                  <div class="ui-field"><label>Teléfono</label><div class="val">8888-4321</div></div>
+                  <div class="ui-card" style="display:flex; align-items:center; justify-content:space-between;">
+                    <span style="font-size:.72rem; font-weight:600;">Dispositivo asignado</span>
+                    <span class="ui-pill gold">NFC · B10D88F4 ✓</span>
+                  </div>
+                  <div class="ui-field"><label>Monto inicial</label>
+                    <div class="ui-quick"><button>₡5.000</button><button>₡10.000</button><button>₡20.000</button><button>Otro</button></div>
+                  </div>
+                  <div class="ui-cta gold">Activar y cobrar ₡10.000</div>
+                  <div class="ui-cta ghost">⚠ Perdió su dispositivo — bloquear y reemplazar</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mockup-grid secondary">
+          <div class="mockup">
+            <span class="mockup-label"><span class="idx">→</span>Dashboard del evento · admin, escritorio</span>
+            <div class="device browser">
+              <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">app.prismacash.io/e/feria-primavera/admin/dashboard</span></div>
+              <div class="screen">
+                <div class="ui-pad">
+                  <div class="ui-topbar"><b>Feria de Primavera</b><span class="ui-online"><i></i>en vivo</span></div>
+                  <div class="ui-kpis">
+                    <div class="ui-kpi"><span class="cap">Ventas hoy</span><span class="val">₡1.284.500</span><div class="trend">↑ 12%</div></div>
+                    <div class="ui-kpi"><span class="cap">Tx / min</span><span class="val">42</span><div class="trend">↑ 6%</div></div>
+                    <div class="ui-kpi"><span class="cap">Saldo circulante</span><span class="val">₡3.910.200</span><div class="trend">→</div></div>
+                    <div class="ui-kpi"><span class="cap">Terminales activas</span><span class="val">8 / 9</span><div class="trend">1 offline</div></div>
+                  </div>
+                  <div class="ui-chart">
+                    <svg viewBox="0 0 320 60" role="img" aria-label="Ingresos por hora, con una tendencia creciente hacia la noche">
+                      <polyline points="0,46 40,42 80,40 120,34 160,30 200,22 240,18 280,10 320,6" fill="none" stroke="var(--ui-signal)" stroke-width="2"/>
+                      <polygon points="0,46 40,42 80,40 120,34 160,30 200,22 240,18 280,10 320,6 320,60 0,60" fill="var(--ui-signal)" opacity=".12"/>
+                    </svg>
+                  </div>
+                  <div class="ui-feed">
+                    <div class="ui-feed-row"><span class="ui-pill ok" style="margin-left:0;">pago</span><span class="branch">Chinamo 3</span><span class="amt neg">-₡2.000</span><span class="time">18:42</span></div>
+                    <div class="ui-feed-row"><span class="ui-pill gold" style="margin-left:0;">recarga</span><span class="branch">Quiosco</span><span class="amt pos">+₡15.000</span><span class="time">18:41</span></div>
+                    <div class="ui-feed-row"><span class="ui-pill warn" style="margin-left:0;">reembolso</span><span class="branch">Quiosco</span><span class="amt neg">-₡3.400</span><span class="time">18:39</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mockup">
+            <span class="mockup-label"><span class="idx">→</span>App móvil asistente · fase 2</span>
+            <div class="device phone">
+              <div class="cam"></div>
+              <div class="screen">
+                <div class="ui-pad">
+                  <div class="ui-topbar"><b>Hola, María</b></div>
+                  <div class="ui-card" style="text-align:center;">
+                    <span class="cap">Saldo disponible</span>
+                    <div class="amt" style="font-family:'IBM Plex Mono'; font-weight:600; font-size:1.5rem; margin:.2rem 0 .6rem;">₡8.450</div>
+                    <div class="ui-qr"></div>
+                    <div class="cap" style="margin-top:.5rem;">Mi QR — feria de primavera</div>
+                  </div>
+                  <div class="ui-cta gold">Recargar saldo</div>
+                  <div class="ui-hist" style="flex-wrap:wrap;">
+                    <span>-₡1.200 comida</span><span>-₡800 bebida</span>
+                  </div>
+                  <div class="ui-cta ghost">Solicitar reembolso</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 09 MOVIL -->
+    <section id="movil">
+      <div class="head"><span class="tag-num">09</span><h2>App móvil <span class="status warn"><span class="d"></span>Fase 2</span></h2></div>
+      <p class="lede">Expo con development build (no Expo Go, por los módulos nativos). Se centra en QR + gestión de cuenta — el dispositivo del asistente se escanea en la terminal, no en su propio teléfono.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Función</th><th>Implementación</th></tr></thead>
+          <tbody>
+            <tr><td>Login asistente</td><td>Teléfono + OTP (Supabase Auth) vinculado a <code>attendees.phone</code></td></tr>
+            <tr><td>Ver saldo y estado</td><td>Consulta por <code>device_uid</code> o por perfil</td></tr>
+            <tr><td>Historial</td><td>Lista de <code>transactions</code> con filtros</td></tr>
+            <tr><td>Recarga online</td><td>Stripe, Mercado Pago o institución bancaria → Edge Function <code>topup</code></td></tr>
+            <tr><td>Mi QR</td><td>Pantalla con QR grande y brillo máximo para el punto de venta</td></tr>
+            <tr><td>Solicitar reembolso</td><td>Formulario → <code>refund_requests</code></td></tr>
+            <tr><td>Notificaciones</td><td>Expo Push: recarga confirmada, reembolso aprobado</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="tablewrap" style="margin-top:1.4rem;">
+        <table>
+          <thead><tr><th>Pasarela</th><th>Confirmación</th><th>Notas</th></tr></thead>
+          <tbody>
+            <tr><td>Stripe</td><td>Webhook en tiempo real</td><td>Cobertura internacional</td></tr>
+            <tr><td>Mercado Pago</td><td>Webhook en tiempo real</td><td>Fuerte en LATAM, tarjetas y billeteras locales</td></tr>
+            <tr><td>Institución bancaria <span class="mono" style="opacity:.7;">(SINPE Móvil, transferencia)</span></td><td>Webhook si el banco lo ofrece; si no, conciliación por archivo/polling</td><td>Suele tener la comisión más baja, pero puede requerir un estado <code>pending</code> hasta conciliar</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 10 ESCALA -->
+    <section id="escala">
+      <div class="head"><span class="tag-num">10</span><h2>Escalabilidad y concurrencia</h2></div>
+      <div class="grid-2">
+        <div class="callout">
+          <h4>Garantías</h4>
+          <ul>
+            <li><code>pg_advisory_xact_lock</code> + <code>UPDATE ... WHERE balance ≥ amount</code>: jamás hay saldo negativo aunque N terminales cobren al mismo dispositivo a la vez.</li>
+            <li>Idempotencia por <code>client_tx_id</code> (uuid generado en la terminal) — un reintento de red nunca duplica el cobro.</li>
+            <li>El dashboard suscribe solo <code>INSERT</code> de transacciones de su evento, filtrado en Postgres Changes.</li>
+          </ul>
+        </div>
+        <div class="callout">
+          <h4>Capacidad</h4>
+          <ul>
+            <li>Supabase Pro/Team con read replicas y pooler de conexiones para eventos masivos.</li>
+            <li><strong>Estimado MVP: 2.000–5.000 tx/hora</strong> sin fricción; arquitectura preparada para 10×.</li>
+            <li>Fase 2: cola offline en IndexedDB con resolución de conflictos por <code>client_tx_id</code>.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 11 DESPLIEGUE -->
+    <section id="despliegue">
+      <div class="head"><span class="tag-num">11</span><h2>Despliegue y entornos</h2></div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Capa</th><th>Servicio</th><th>Notas</th></tr></thead>
+          <tbody>
+            <tr><td>Frontend PWA</td><td class="mono">Vercel</td><td>Preview por PR, producción por dominio</td></tr>
+            <tr><td>Backend</td><td class="mono">Supabase</td><td>Proyectos <code>staging</code> + <code>prod</code>; migraciones versionadas</td></tr>
+            <tr><td>App móvil</td><td class="mono">EAS</td><td>Builds OTA; Google Play / App Store</td></tr>
+            <tr><td>Dominios</td><td class="mono">Vercel Domains</td><td>Dominio global + opcional por evento</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin-top:1rem; font-size:.9rem; color:var(--ink-soft);"><strong>CI/CD:</strong> GitHub Actions → lint + tests + build → preview en Vercel → <code>supabase db push</code> con aprobación manual en prod.</p>
+    </section>
+
+    <!-- 12 ROADMAP -->
+    <section id="sprints">
+      <div class="head"><span class="tag-num">12</span><h2>Roadmap</h2></div>
+      <span class="roadmap-note">Guía de secuencia para un desarrollador — no hay fecha de evento piloto comprometida; cada sprint asume el anterior terminado.</span>
+      <div class="roadmap">
+        <div class="rm-step">
+          <div class="rm-head"><span class="rm-dot"></span><span class="rm-title">Sprint 1 · Fundaciones</span></div>
+          <ul><li>Scaffold Vite+React+TS+Tailwind+PWA</li><li>Schema, migraciones, RLS inicial</li><li>Auth + branding dinámico</li></ul>
+        </div>
+        <div class="rm-step">
+          <div class="rm-head"><span class="rm-dot"></span><span class="rm-title">Sprint 2 · Operación core</span></div>
+          <ul><li>Quiosco: registro + recarga inicial</li><li>POS: escaneo QR/NFC + cobro atómico</li><li>Bloqueo/reemplazo con migración</li></ul>
+        </div>
+        <div class="rm-step">
+          <div class="rm-head"><span class="rm-dot"></span><span class="rm-title">Sprint 3 · Admin y dashboard</span></div>
+          <ul><li>CRUD sucursales/terminales/personal</li><li>Dashboard realtime + KPIs</li><li>Historial con filtros + export</li></ul>
+        </div>
+        <div class="rm-step">
+          <div class="rm-head"><span class="rm-dot"></span><span class="rm-title">Sprint 4 · Pulido + hardening</span></div>
+          <ul><li>Kiosk mode, Wake Lock, feedback</li><li>E2E (Playwright) + concurrencia (k6)</li><li>Staging + piloto real</li></ul>
+        </div>
+        <div class="rm-step">
+          <div class="rm-head"><span class="rm-dot" style="background:var(--ink-faint);"></span><span class="rm-title">Sprint 5+ · Fase 2</span></div>
+          <ul><li>App móvil Expo</li><li>Reembolsos online</li><li>Modo offline, analítica</li></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 13 RIESGOS -->
+    <section id="riesgos">
+      <div class="head"><span class="tag-num">13</span><h2>Riesgos y mitigaciones</h2></div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Riesgo</th><th>Mitigación</th></tr></thead>
+          <tbody>
+            <tr><td>Web NFC no existe en iOS</td><td>Terminales iOS en modo QR; híbridas NFC+QR en Android</td></tr>
+            <tr><td>Pérdida de conectividad en el evento</td><td>Cola offline idempotente (Fase 2) + hotspot 4G/5G de respaldo</td></tr>
+            <tr><td>Doble cobro por doble tap</td><td><code>client_tx_id</code> único + lock transaccional</td></tr>
+            <tr><td>Fraude con QR fotografiado</td><td>QR rotativo con TTL (Fase 2) o límite de monto por transacción</td></tr>
+            <tr><td>Saldo negativo por concurrencia</td><td>Advisory lock + <code>UPDATE ... WHERE balance ≥ amount</code></td></tr>
+            <tr><td>RLS mal configurado entre eventos</td><td>Tests automáticos de aislamiento en CI</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 14 SIGUIENTES -->
+    <section id="siguientes">
+      <div class="head"><span class="tag-num">14</span><h2>Próximos pasos inmediatos</h2></div>
+      <ol class="checklist">
+        <li><span class="idx">1</span>Crear proyecto Supabase (staging) y correr las migraciones del schema.</li>
+        <li><span class="idx">2</span>Scaffolding del repo: <code class="mono">npm create vite@latest prismacash -- --template react-ts</code> + Tailwind + <code class="mono">vite-plugin-pwa</code>.</li>
+        <li><span class="idx">3</span>Implementar la Edge Function <code>charge</code> con pruebas de concurrencia (k6).</li>
+        <li><span class="idx">4</span>Maquetar el modo punto de venta — la pantalla más crítica del producto.</li>
+      </ol>
+    </section>
+
+    <footer>
+      Documento generado como plan maestro · cada sección es implementable de forma independiente siguiendo el orden del roadmap.
+    </footer>
+  </main>
+</div>
+
+<script>
+(function(){
+  var toggle = document.getElementById('tocToggle');
+  var sidebar = document.getElementById('sidebar');
+  var mq = window.matchMedia('(max-width: 900px)');
+
+  function syncSidebar(){
+    if(mq.matches){ sidebar.hidden = true; toggle.setAttribute('aria-expanded','false'); }
+    else { sidebar.hidden = false; }
+  }
+  syncSidebar();
+  mq.addEventListener('change', syncSidebar);
+
+  toggle.addEventListener('click', function(){
+    var willShow = sidebar.hidden;
+    sidebar.hidden = !willShow;
+    toggle.setAttribute('aria-expanded', String(willShow));
+  });
+  sidebar.addEventListener('click', function(e){
+    if(e.target.tagName === 'A' && mq.matches){ sidebar.hidden = true; toggle.setAttribute('aria-expanded','false'); }
+  });
+
+  // scroll-spy
+  var links = Array.prototype.slice.call(document.querySelectorAll('nav.toc a'));
+  var map = {};
+  links.forEach(function(a){ map[a.getAttribute('href').slice(1)] = a; });
+  var sections = Array.prototype.slice.call(document.querySelectorAll('main section[id]'));
+  var observer = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      var link = map[entry.target.id];
+      if(!link) return;
+      if(entry.isIntersecting){
+        links.forEach(function(l){ l.classList.remove('active'); });
+        link.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-10% 0px -75% 0px', threshold: 0 });
+  sections.forEach(function(s){ observer.observe(s); });
+
+  // tabs
+  function wireTabs(tabIds, panelIds){
+    var tabs = tabIds.map(function(id){ return document.getElementById(id); });
+    var panels = panelIds.map(function(id){ return document.getElementById(id); });
+    tabs.forEach(function(tab, i){
+      tab.addEventListener('click', function(){
+        tabs.forEach(function(t,j){ t.setAttribute('aria-selected', String(i===j)); });
+        panels.forEach(function(p,j){ p.hidden = (i!==j); });
+      });
+    });
+  }
+  wireTabs(['tab-f1','tab-f2','tab-f3'], ['panel-f1','panel-f2','panel-f3']);
+})();
+</script>
+</body>
+</html>

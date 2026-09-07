@@ -1,0 +1,771 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PrismaCash — Propuesta de UI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --violet: #5D6EE2;
+    --violet-deep: #4A3FB0;
+    --indigo: #532271;
+    --violet-soft: #7D96EA;
+    --lilac: #EEF0FF;
+    --coral: #FE7F6C;
+    --coral-soft: #FFE9E4;
+    --mint: #3ECFA0;
+    --mint-soft: #E2F8F0;
+    --amber: #FFB454;
+    --amber-soft: #FFF1DC;
+    --ink: #17132B;
+    --ink-soft: #6B6791;
+    --line: #E7E7F2;
+    --bg: #F5F6FB;
+    --grad-brand: linear-gradient(135deg, #532271 0%, #5D6EE2 100%);
+    --grad-coral: linear-gradient(135deg, #FE8F6C 0%, #FE6F84 100%);
+    --card: 0 2px 4px rgba(23,19,43,.04), 0 12px 32px rgba(83,34,113,.08);
+    --shadow-lg: 0 20px 60px rgba(83,34,113,.18);
+    --radius: 20px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    padding: 32px 20px 80px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono { font-family: 'Space Grotesk', monospace; }
+
+  /* ---------- header ---------- */
+  .topbar {
+    max-width: 1240px; margin: 0 auto 8px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 20px; }
+  .brand .dot {
+    width: 34px; height: 34px; border-radius: 12px; background: var(--grad-brand);
+    display: grid; place-items: center; color: #fff; font-size: 16px; box-shadow: var(--card);
+  }
+  .hero {
+    max-width: 1240px; margin: 0 auto 28px; padding: 40px;
+    background: var(--grad-brand); border-radius: 32px; color: #fff; position: relative; overflow: hidden;
+    box-shadow: var(--shadow-lg);
+  }
+  .hero::after {
+    content: ''; position: absolute; right: -80px; top: -100px; width: 420px; height: 420px;
+    background: radial-gradient(circle, rgba(255,255,255,.18) 0%, transparent 60%);
+  }
+  .hero h1 { font-size: 34px; font-weight: 800; letter-spacing: -.5px; line-height: 1.1; max-width: 640px; }
+  .hero p { margin-top: 10px; opacity: .9; max-width: 560px; font-size: 15px; }
+  .hero .tags { margin-top: 20px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .hero .tag {
+    background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.25);
+    padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 600;
+  }
+
+  /* ---------- global switch ---------- */
+  .switch {
+    max-width: 1240px; margin: 0 auto 32px; display: flex; gap: 8px; background: #fff;
+    border: 1px solid var(--line); border-radius: 999px; padding: 6px; width: fit-content; box-shadow: var(--card);
+  }
+  .switch button {
+    border: 0; background: transparent; font-family: inherit; font-size: 14px; font-weight: 700;
+    padding: 10px 22px; border-radius: 999px; cursor: pointer; color: var(--ink-soft); transition: .2s;
+  }
+  .switch button.active { background: var(--grad-brand); color: #fff; box-shadow: 0 4px 14px rgba(83,34,113,.28); }
+
+  .section { max-width: 1240px; margin: 0 auto; display: none; }
+  .section.active { display: block; animation: rise .4s ease; }
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+  /* ---------- generic grid ---------- */
+  .grid { display: grid; gap: 24px; }
+  .grid-mobile { grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); }
+  .grid-admin { grid-template-columns: 1fr 340px; }
+  .grid-admin-wide { grid-template-columns: 1.4fr 1fr; }
+  @media (max-width: 900px) { .grid-admin, .grid-admin-wide { grid-template-columns: 1fr; } }
+
+  .card {
+    background: #fff; border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: var(--card); padding: 22px;
+  }
+  .card h3 { font-size: 15px; font-weight: 800; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .muted { color: var(--ink-soft); }
+
+  /* ---------- phone frame ---------- */
+  .device-wall { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
+  .phone-stack { margin-top: 12px; }
+  .phone {
+    width: 360px; height: 740px; background: #17132B; border-radius: 48px; padding: 10px;
+    box-shadow: 0 30px 80px rgba(23,19,43,.4); position: relative; margin: 0 auto;
+  }
+  .phone .screen {
+    width: 100%; height: 100%; background: var(--bg); border-radius: 38px; overflow: hidden;
+    display: flex; flex-direction: column; position: relative;
+  }
+  .notch {
+    position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 120px; height: 28px;
+    background: #17132B; border-radius: 999px; z-index: 10;
+  }
+  .screen-scroll { overflow-y: auto; flex: 1; padding: 34px 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+  .screen-scroll::-webkit-scrollbar { display: none; }
+  .s-title { font-size: 22px; font-weight: 800; letter-spacing: -.4px; }
+  .s-sub { color: var(--ink-soft); font-size: 13px; }
+  .s-nav { display: flex; gap: 6px; margin-bottom: 4px; }
+  .s-nav button {
+    flex: 1; border: 0; background: transparent; font-family: inherit; font-size: 12px; font-weight: 700;
+    color: var(--ink-soft); padding: 8px; border-radius: 999px; cursor: pointer;
+  }
+  .s-nav button.active { background: var(--lilac); color: var(--violet-deep); }
+
+  /* ---------- mobile atoms ---------- */
+  .balance-card {
+    background: var(--grad-brand); border-radius: 24px; padding: 22px; color: #fff; position: relative; overflow: hidden;
+  }
+  .balance-card::after { content: ''; position: absolute; right: -50px; top: -60px; width: 200px; height: 200px; background: radial-gradient(circle, rgba(255,255,255,.2) 0%, transparent 65%); }
+  .balance-card .label { font-size: 12px; opacity: .85; }
+  .balance-card .amount { font-family: 'Space Grotesk'; font-size: 34px; font-weight: 700; margin-top: 4px; letter-spacing: -.5px; }
+  .balance-card .row { display: flex; justify-content: space-between; align-items: flex-end; }
+  .pill-row { display: flex; gap: 10px; }
+  .pill {
+    flex: 1; border: 0; font-family: inherit; font-size: 13px; font-weight: 700; padding: 14px;
+    border-radius: 18px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+  .pill .ico { font-size: 20px; }
+  .pill-solid { background: var(--grad-brand); color: #fff; box-shadow: 0 8px 20px rgba(83,34,113,.3); }
+  .pill-coral { background: var(--coral-soft); color: #B4472E; }
+  .pill-line { background: #fff; border: 1.5px solid var(--line); color: var(--ink); }
+  .qr-box { background: #fff; border: 1px solid var(--line); border-radius: 24px; padding: 24px; display: grid; place-items: center; position: relative; }
+  .qr-shadow { position: absolute; inset: 0; border-radius: 24px; box-shadow: inset 0 0 0 6px #fff, inset 0 0 0 8px var(--ink-soft); }
+
+  /* tx list */
+  .tx { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .tx:last-child { border-bottom: 0; }
+  .tx .ico { width: 40px; height: 40px; border-radius: 14px; display: grid; place-items: center; font-size: 16px; flex-shrink: 0; }
+  .tx .meta { flex: 1; min-width: 0; }
+  .tx .meta b { display: block; font-size: 13px; }
+  .tx .meta span { font-size: 11px; color: var(--ink-soft); }
+  .tx .amt { font-family: 'Space Grotesk'; font-size: 13px; font-weight: 700; }
+
+  .input {
+    width: 100%; border: 1.5px solid var(--line); border-radius: 16px; padding: 14px 16px; font-size: 14px;
+    font-family: inherit; background: #fff; outline: none; transition: .15s;
+  }
+  .input:focus { border-color: var(--violet); box-shadow: 0 0 0 4px var(--lilac); }
+  .label { font-size: 12px; font-weight: 700; color: var(--ink-soft); margin-bottom: 6px; display: block; }
+
+  .btn {
+    border: 0; font-family: inherit; font-weight: 800; border-radius: 18px; padding: 16px; font-size: 15px;
+    cursor: pointer; transition: transform .12s, box-shadow .2s; width: 100%;
+  }
+  .btn:active { transform: scale(.98); }
+  .btn-primary { background: var(--grad-brand); color: #fff; box-shadow: 0 10px 24px rgba(83,34,113,.3); }
+  .btn-coral { background: var(--grad-coral); color: #fff; box-shadow: 0 10px 24px rgba(254,111,132,.3); }
+  .btn-ghost { background: #fff; border: 1.5px solid var(--line); color: var(--ink); }
+
+  .chip { font-size: 11px; font-weight: 700; border-radius: 999px; padding: 5px 10px; }
+  .chip-payment { background: var(--mint-soft); color: #1F9B73; }
+  .chip-topup { background: var(--lilac); color: var(--violet-deep); }
+  .chip-load { background: #EAE7FF; color: var(--indigo); }
+  .chip-refund { background: var(--coral-soft); color: #C04A32; }
+  .chip-mig { background: var(--amber-soft); color: #A86B10; }
+
+  .amounts { display: flex; gap: 8px; flex-wrap: wrap; }
+  .amount {
+    flex: 1; min-width: 88px; border: 1.5px solid var(--line); background: #fff; border-radius: 16px;
+    padding: 12px 6px; font-family: 'Space Grotesk'; font-weight: 700; font-size: 14px; cursor: pointer; color: var(--ink);
+  }
+  .amount.active { border-color: var(--violet); background: var(--lilac); color: var(--violet-deep); }
+
+  /* ---------- kiosk / pos frames ---------- */
+  .frame {
+    border: 1px solid var(--line); border-radius: 28px; background: #fff; box-shadow: var(--card);
+    padding: 22px; position: relative; overflow: hidden;
+  }
+  .frame-kiosk::before, .frame-pos::before {
+    content: ''; position: absolute; inset: 0 0 auto 0; height: 8px; background: var(--grad-brand);
+  }
+  .frame-pos::before { background: var(--grad-coral); }
+  .frame-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--ink-soft); font-weight: 800; margin-bottom: 14px; }
+  .kiosk-fields { display: grid; gap: 14px; }
+  .scanner-mock {
+    border: 2px dashed #C9C7E4; border-radius: 20px; padding: 26px; text-align: center; position: relative; background: var(--bg);
+  }
+  .scanner-mock .lens { width: 120px; height: 120px; margin: 0 auto 12px; position: relative; border-radius: 8px; overflow: hidden; background: linear-gradient(135deg, #E4E6FF, #F3F4FF); }
+  .scanner-mock .lens::after {
+    content: ''; position: absolute; left: 8px; right: 8px; height: 3px; background: var(--coral); border-radius: 2px;
+    animation: scan 2s ease-in-out infinite; box-shadow: 0 0 12px var(--coral);
+  }
+  @keyframes scan { 0%,100% { top: 12px; } 50% { top: 104px; } }
+  .focus-corners { position: absolute; inset: 0; pointer-events: none; }
+  .focus-corners i { position: absolute; width: 22px; height: 22px; border: 3px solid var(--violet); }
+  .focus-corners i:nth-child(1) { top: 0; left: 0; border-right: 0; border-bottom: 0; border-radius: 8px 0 0 0; }
+  .focus-corners i:nth-child(2) { top: 0; right: 0; border-left: 0; border-bottom: 0; border-radius: 0 8px 0 0; }
+  .focus-corners i:nth-child(3) { bottom: 0; left: 0; border-right: 0; border-top: 0; border-radius: 0 0 0 8px; }
+  .focus-corners i:nth-child(4) { bottom: 0; right: 0; border-left: 0; border-top: 0; border-radius: 0 0 8px 0; }
+
+  .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 8px; }
+  .keypad button {
+    border: 1.5px solid var(--line); background: #fff; border-radius: 16px; font-family: 'Space Grotesk';
+    font-size: 20px; font-weight: 700; padding: 16px; cursor: pointer;
+  }
+  .keypad button:active { background: var(--lilac); }
+  .total-display { text-align: center; padding: 6px 0; }
+  .total-display .num { font-family: 'Space Grotesk'; font-size: 40px; font-weight: 700; letter-spacing: -1px; }
+  .total-display .cur { color: var(--ink-soft); font-size: 18px; font-weight: 700; }
+  .success-flash { background: var(--grad-coral); color: #fff; border-radius: 20px; padding: 22px; text-align: center; }
+  .success-flash .big { font-size: 40px; }
+  .success-flash b { display: block; font-size: 17px; margin: 6px 0 2px; }
+
+  /* ---------- admin ---------- */
+  .admin-layout { display: grid; grid-template-columns: 220px 1fr; gap: 20px; }
+  @media (max-width: 900px) { .admin-layout { grid-template-columns: 1fr; } }
+  .admin-nav { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; align-self: start; }
+  .admin-nav a {
+    display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 14px; color: var(--ink-soft);
+    font-size: 14px; font-weight: 700; text-decoration: none; margin-bottom: 4px;
+  }
+  .admin-nav a.active { background: var(--grad-brand); color: #fff; box-shadow: 0 6px 16px rgba(83,34,113,.25); }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  @media (max-width: 1100px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+  .kpi {
+    background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; box-shadow: var(--card);
+  }
+  .kpi .ico { width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; font-size: 18px; margin-bottom: 12px; }
+  .kpi .k { font-size: 12px; color: var(--ink-soft); font-weight: 700; }
+  .kpi .v { font-family: 'Space Grotesk'; font-size: 26px; font-weight: 700; margin-top: 2px; letter-spacing: -.5px; }
+  .kpi .d { font-size: 12px; font-weight: 700; margin-top: 4px; }
+  .up { color: #1F9B73; } .down { color: #C04A32; }
+
+  .table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--ink-soft); padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  .table td { padding: 12px; border-bottom: 1px solid var(--line); }
+  .table tr:last-child td { border-bottom: 0; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--grad-brand); color: #fff; display: inline-grid; place-items: center; font-size: 12px; font-weight: 800; }
+
+  .legend { display: flex; gap: 14px; font-size: 12px; color: var(--ink-soft); font-weight: 700; margin-top: 10px; flex-wrap: wrap; }
+  .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; margin-right: 6px; }
+  .feed-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .feed-item:last-child { border-bottom: 0; }
+  .spark { display: flex; align-items: flex-end; gap: 4px; height: 60px; }
+  .spark span { width: 12px; border-radius: 4px 4px 0 0; background: linear-gradient(180deg, var(--violet-soft), var(--violet)); }
+
+  .footnote { max-width: 1240px; margin: 40px auto 0; font-size: 13px; color: var(--ink-soft); text-align: center; }
+  .footnote b { color: var(--ink); }
+
+  /* ---------- tipo de dispositivo (QR | NFC) ---------- */
+  .type-bar {
+    max-width: 1240px; margin: 0 auto 32px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  }
+  .type-bar > span { font-size: 13px; font-weight: 800; color: var(--ink-soft); }
+  .type-switch {
+    display: flex; gap: 6px; background: #fff; border: 1px solid var(--line); border-radius: 999px;
+    padding: 5px; box-shadow: var(--card);
+  }
+  .type-switch button {
+    border: 0; background: transparent; font-family: inherit; font-size: 13px; font-weight: 700;
+    padding: 8px 20px; border-radius: 999px; cursor: pointer; color: var(--ink-soft); transition: .2s;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .type-switch button.active { background: var(--violet-deep); color: #fff; box-shadow: 0 4px 12px rgba(83,34,113,.3); }
+  .tag-mini { font-size: 10px; padding: 2px 7px; border-radius: 999px; font-weight: 800; }
+  .type-switch button.active .tag-mini { background: rgba(255,255,255,.2); }
+
+  /* mockups intercambiables */
+  .dev-qr { display: grid; }
+  .dev-nfc { display: none; }
+  body.mode-nfc .dev-qr { display: none; }
+  body.mode-nfc .dev-nfc { display: flex; }
+  .dev-nfc.center { justify-content: center; align-items: center; }
+  body.mode-nfc b.dev-nfc, body.mode-nfc span.dev-nfc { display: inline; }
+  b.dev-qr, span.dev-qr { display: inline; }
+  body.mode-nfc span.dev-nfc.icono, body.mode-nfc span.dev-qr.icono { display: inline; }
+  .dev-qr.icono, .dev-nfc.icono { display: inline; }
+
+  .nfc-bracelet {
+    width: 190px; height: 84px; border-radius: 999px; background: linear-gradient(135deg, #532271, #5D6EE2);
+    display: flex; align-items: center; justify-content: center; position: relative; box-shadow: 0 14px 30px rgba(83,34,113,.35);
+  }
+  .nfc-bracelet::after {
+    content: ''; position: absolute; inset: 8px; border-radius: 999px; border: 1.5px dashed rgba(255,255,255,.35);
+  }
+  .nfc-chip {
+    width: 52px; height: 34px; border-radius: 10px; background: linear-gradient(160deg, #F4F6FF, #C9C7E4);
+    display: grid; place-items: center; z-index: 2;
+  }
+  .nfc-chip i {
+    width: 26px; height: 22px; border-radius: 5px; background: repeating-linear-gradient(90deg,
+      #8C86B8 0 3px, transparent 3px 6px); box-shadow: inset 0 0 0 2px #8C86B8;
+  }
+
+  .nfc-tag {
+    display: flex; align-items: center; gap: 14px; background: #fff; border: 1.5px solid var(--line);
+    border-radius: 20px; padding: 14px 18px;
+  }
+  .nfc-tag .ring {
+    width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, #532271, #5D6EE2); display: grid; place-items: center; color: #fff; font-size: 18px;
+    box-shadow: 0 8px 18px rgba(83,34,113,.3);
+  }
+  .nfc-tag b { font-size: 14px; display: block; }
+  .nfc-tag span { font-size: 12px; color: var(--ink-soft); }
+</style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="brand"><span class="dot">✦</span> PrismaCash <span class="muted" style="font-weight:500;font-size:13px">— propuesta de UI v2</span></div>
+  </header>
+
+  <section class="hero">
+    <h1>Pagos sin contacto para eventos,<br />con una cara nueva: moderna, cálida y rápida.</h1>
+    <p>Rediseño de todo el sistema sobre un solo design language: gradientes morado/índigo, acento coral, tarjetas redondeadas, tipografía con personalidad y micro-interacciones. Pensado para web y para la app móvil por igual.</p>
+    <div class="tags">
+      <span class="tag">● Design tokens compartidos</span>
+      <span class="tag">● Móvil-first</span>
+      <span class="tag">● QR y NFC</span>
+      <span class="tag">● Feed en vivo</span>
+      <span class="tag">● Accesible</span>
+    </div>
+  </section>
+
+  <nav class="switch">
+    <button data-tab="movil" class="active">📱 App móvil</button>
+    <button data-tab="kiosk">🖥️ Quiosco</button>
+    <button data-tab="pos">💳 Punto de venta</button>
+    <button data-tab="admin">📊 Admin</button>
+  </nav>
+
+  <div class="type-bar">
+    <span>Tipo de dispositivo del evento</span>
+    <div class="type-switch">
+      <button data-device="qr" class="active">▣ QR <span class="tag-mini">cámara</span></button>
+      <button data-device="nfc">◉ Pulsera NFC <span class="tag-mini">contacto</span></button>
+    </div>
+  </div>
+
+  <!-- ======================= APP MÓVIL ======================= -->
+  <section class="section active" id="tab-movil">
+    <div class="device-wall">
+      <!-- login -->
+      <div class="phone-stack">
+        <div class="phone"><div class="screen">
+          <div class="notch"></div>
+          <div class="screen-scroll">
+            <div style="text-align:center;padding:26px 0 4px">
+              <div style="width:52px;height:52px;border-radius:18px;background:var(--grad-brand);display:grid;place-items:center;margin:0 auto 12px;color:#fff;font-size:24px">✦</div>
+              <div class="s-title">Hola 👋</div>
+              <p class="s-sub">Entra con tu teléfono</p>
+            </div>
+            <label class="label" for="m-phone">Número de teléfono</label>
+            <input id="m-phone" class="input" value="+506 8888 4444" />
+            <button class="btn btn-primary" style="margin-top:6px">Enviar código</button>
+            <p class="s-sub" style="text-align:center;font-size:12px">El código llega por SMS. Sin contraseñas, sin tarjetas que recordar.</p>
+          </div>
+        </div></div>
+        <p class="muted" style="text-align:center;margin-top:14px;font-size:12px;font-weight:700">Login asistente · OTP por SMS</p>
+      </div>
+
+      <!-- saldo -->
+      <div class="phone-stack">
+        <div class="phone"><div class="screen">
+          <div class="notch"></div>
+          <div class="screen-scroll">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <b style="font-size:16px">Hola, Fabián</b>
+              <span style="font-size:16px">🔔</span>
+            </div>
+            <div class="balance-card">
+              <div class="row">
+                <div>
+                  <div class="label">Saldo disponible</div>
+                  <div class="amount">₡ 18 500</div>
+                </div>
+                <div style="font-size:26px">✨</div>
+              </div>
+<div style="margin-top:14px;display:flex;gap:8px">
+              <span class="chip" style="background:rgba(255,255,255,.18);color:#fff">FERIA DEMO</span>
+              <span class="chip dev-qr icono" style="background:rgba(255,255,255,.18);color:#fff">QR</span>
+              <span class="chip dev-nfc icono" style="background:rgba(255,255,255,.18);color:#fff">NFC</span>
+            </div>
+            </div>
+            <div class="pill-row">
+              <button class="pill pill-solid"><span class="ico">🔁</span>Recargar</button>
+              <button class="pill pill-line"><span class="ico dev-qr icono">▣</span><span class="ico dev-nfc icono">◉</span>Mi código</button>
+              <button class="pill pill-coral"><span class="ico">↩</span>Reembolso</button>
+            </div>
+            <div class="qr-box" style="padding:16px">
+              <svg width="150" height="150" viewBox="0 0 21 21">
+                <rect width="21" height="21" fill="#fff"/>
+                <path fill="#17132B" d="M0 0h5v5H0zM8 0h5v5H8zM16 0h5v5h-5zM0 8h5v5H0zM8 8h3v3H8zM16 8h5v5h-5zM0 16h5v5H0zM8 16h5v5H8zM16 16h2v2h-2zM18 13h2v2h-2zM6 2h1v1H6zM13 2h1v1h-1zM13 5h2v2h-2zM3 10h1v1H3zM10 12h1v1h-1zM2 13h2v2H2zM13 13h1v2h-1zM14 13h2v1h-2zM3 18h2v1H3zM6 18h1v2H6zM12 18h1v2h-1zM14 16h1v1h-1zM17 18h1v1h-1z"/>
+              </svg>
+            </div>
+            <p class="s-sub" style="text-align:center;font-size:12px">Muestra este código en la caja para pagar</p>
+          </div>
+        </div></div>
+        <p class="muted" style="text-align:center;margin-top:14px;font-size:12px;font-weight:700">Home · saldo + balance card degradado</p>
+      </div>
+
+      <!-- QR -->
+      <div class="phone-stack">
+        <div class="phone"><div class="screen">
+          <div class="notch"></div>
+          <div class="screen-scroll" style="align-items:center">
+            <div style="display:flex;justify-content:space-between;width:100%;align-items:center">
+              <span class="s-title" style="font-size:18px">Mi identificador</span>
+              <span style="font-size:16px">✕</span>
+            </div>
+            <div class="qr-box dev-qr" style="border-radius:28px;padding:40px 24px;box-shadow:var(--card)">
+              <svg width="210" height="210" viewBox="0 0 21 21">
+                <rect width="21" height="21" fill="#fff"/>
+                <path fill="#17132B" d="M0 0h5v5H0zM8 0h5v5H8zM16 0h5v5h-5zM0 8h5v5H0zM8 8h3v3H8zM16 8h5v5h-5zM0 16h5v5H0zM8 16h5v5H8zM16 16h2v2h-2zM18 13h2v2h-2zM6 2h1v1H6zM13 2h1v1h-1zM13 5h2v2h-2zM3 10h1v1H3zM10 12h1v1h-1zM2 13h2v2H2zM13 13h1v2h-1zM14 13h2v1h-2zM3 18h2v1H3zM6 18h1v2H6zM12 18h1v2h-1zM14 16h1v1h-1zM17 18h1v1h-1z"/>
+              </svg>
+            </div>
+            <div class="qr-box dev-nfc center" style="border-radius:28px;padding:36px 24px;box-shadow:var(--card)">
+              <div class="nfc-bracelet">
+                <div class="nfc-chip"><i></i></div>
+              </div>
+              <p class="s-sub" style="text-align:center;margin-top:12px">Pulsera NFC · <b>PRS-CR-88F2</b></p>
+              <span class="chip" style="background:var(--mint-soft);color:#1F9B73;margin-top:6px">Contactless activo</span>
+            </div>
+            <div class="balance-card" style="width:100%">
+              <div class="row">
+                <div>
+                  <div class="label">Pagas con</div>
+                  <div class="amount" style="font-size:22px">₡ 18 500</div>
+                </div>
+                <div class="pill-row" style="gap:6px">
+                  <span class="chip" style="background:var(--mint);color:#123;font-weight:800">● Activo</span>
+                </div>
+              </div>
+            </div>
+            <p class="s-sub" style="text-align:center;font-size:12px">Tu dispositivo contactless está vinculado a tu evento. Acércalo a la terminal para pagar.</p>
+          </div>
+        </div></div>
+        <p class="muted" style="text-align:center;margin-top:14px;font-size:12px;font-weight:700"><span class="dev-qr">QR para POS · estado del dispositivo</span><span class="dev-nfc">NFC para POS · estado del dispositivo</span></p>
+      </div>
+
+      <!-- historial -->
+      <div class="phone-stack">
+        <div class="phone"><div class="screen">
+          <div class="notch"></div>
+          <div class="screen-scroll">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span class="s-title" style="font-size:18px">Movimientos</span>
+              <button class="btn btn-ghost" style="width:auto;padding:8px 14px;font-size:12px;border-radius:999px">Filtros</button>
+            </div>
+            <div class="card" style="padding:12px 16px">
+              <div class="tx"><span class="ico" style="background:var(--mint-soft)">🍜</span><div class="meta"><b>Tacos La Esquina</b><span>Hoy · 13:42 · Sucursal Centro</span></div><span class="chip chip-payment">Pago</span><span class="amt">−₡3 500</span></div>
+              <div class="tx"><span class="ico" style="background:var(--lilac)">🔋</span><div class="meta"><b>Recarga</b><span>Ayer · 10:02 · Quiosco Norte</span></div><span class="chip chip-topup">Recarga</span><span class="amt" style="color:var(--violet-deep)">+₡10 000</span></div>
+              <div class="tx"><span class="ico" style="background:var(--amber-soft)">🎂</span><div class="meta"><b>Postres Ana</b><span>25 ago · 18:20 · Sucursal Paseo</span></div><span class="chip chip-payment">Pago</span><span class="amt">−₡2 000</span></div>
+              <div class="tx"><span class="ico" style="background:#E7F0FF">🎫</span><div class="meta"><b>Apertura feria</b><span>25 ago · 09:00 · Quiosco Norte</span></div><span class="chip chip-load">Inicial</span><span class="amt" style="color:var(--violet-deep)">+₡5 000</span></div>
+            </div>
+            <div class="card" style="padding:16px 18px;background:var(--lilac);border-color:transparent">
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="font-size:20px">📉</span>
+                <div><b style="font-size:13px">¿Te quedaste sin saldo?</b><br /><span class="muted" style="font-size:12px">Recarga desde el quiosco o en línea.</span></div>
+              </div>
+            </div>
+          </div>
+        </div></div>
+        <p class="muted" style="text-align:center;margin-top:14px;font-size:12px;font-weight:700">Historial · con estado y sucursal</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= QUISCO ======================= -->
+  <section class="section" id="tab-kiosk">
+    <div style="display:flex;gap:24px;flex-wrap:wrap">
+      <div class="frame frame-kiosk" style="flex:1;min-width:360px">
+        <div class="frame-label">Quiosco de recarga · tablet</div>
+        <div class="s-nav" style="margin-bottom:18px">
+          <button class="active">Nuevo dispositivo</button>
+          <button>Recargar</button>
+          <button>Reemplazar</button>
+        </div>
+        <div class="kiosk-fields">
+          <div>
+            <label class="label">Asistente</label>
+            <div class="input" style="display:flex;justify-content:space-between;align-items:center;color:var(--ink)">Valeria Sancho <span style="color:var(--mint);font-weight:800">✓</span></div>
+          </div>
+          <div>
+            <label class="label">Teléfono</label>
+            <input class="input" value="+506 8302 1122" />
+          </div>
+          <div class="scanner-mock">
+            <div class="lens"><div class="focus-corners"><i></i><i></i><i></i><i></i></div>
+              <span class="dev-qr" style="font-size:34px;line-height:120px">▣</span>
+              <span class="dev-nfc" style="font-size:22px;line-height:120px">◉</span>
+            </div>
+            <b style="font-size:14px">Dispositivo detectado</b>
+            <div class="dev-qr" style="font-family:'Space Grotesk';color:var(--violet);font-weight:700;font-size:13px">PRS-CR-88F2</div>
+            <div class="dev-nfc" style="font-family:'Space Grotesk';color:var(--violet);font-weight:700;font-size:13px">PRS-NFC-88F2</div>
+            <span class="muted" style="font-size:12px"><span class="dev-qr">Escanea el código QR del asistente</span><b class="dev-nfc" style="font-weight:600">Cerca la pulsera NFC al lector</b></span>
+          </div>
+          <div>
+            <label class="label">Monto inicial</label>
+            <div class="amounts">
+              <button class="amount">₡5 000</button>
+              <button class="amount active">₡10 000</button>
+              <button class="amount">₡20 000</button>
+              <button class="amount">Otro…</button>
+            </div>
+          </div>
+          <button class="btn btn-primary">Activar y cobrar <span style="font-weight:400">·</span> ₡10 000</button>
+        </div>
+      </div>
+
+      <div class="frame frame-kiosk" style="flex:1;min-width:360px">
+        <div class="frame-label">Flujo · reemplazo por extravío</div>
+        <div class="kiosk-fields">
+          <div class="scanner-mock" style="padding:20px">
+            <div class="lens" style="width:90px;height:90px">
+              <span class="dev-qr" style="font-size:26px;line-height:90px">▣</span>
+              <span class="dev-nfc" style="font-size:18px;line-height:90px">◉</span>
+            </div>
+            <b style="font-size:13px">Dispositivo extraviado</b>
+            <div class="dev-qr" style="font-family:'Space Grotesk';color:var(--coral);font-weight:700;font-size:13px">PRS-CR-114A</div>
+            <div class="dev-nfc" style="font-family:'Space Grotesk';color:var(--coral);font-weight:700;font-size:13px">PRS-NFC-114A</div>
+          </div>
+          <div class="card" style="padding:14px 16px;display:flex;align-items:center;gap:12px">
+            <span style="width:40px;height:40px;border-radius:14px;background:var(--coral-soft);display:grid;place-items:center;font-size:18px">🧒</span>
+            <div style="flex:1;min-width:0">
+              <b style="font-size:14px;display:block">Valeria Sancho</b>
+              <span class="muted" style="font-size:12px">Saldo del dispositivo: <b style="color:var(--ink)">₡ 7 400</b></span>
+            </div>
+            <span class="chip chip-mig">Se migrará</span>
+          </div>
+          <div class="scanner-mock" style="padding:20px;border-color:#B9E7D5;background:#F3FCF8">
+            <div class="lens" style="width:90px;height:90px;background:linear-gradient(135deg,#E2F8F0,#F3FCF8)">
+              <span class="dev-qr" style="font-size:26px;line-height:90px">✅</span>
+              <span class="dev-nfc" style="font-size:18px;line-height:90px">✅</span>
+            </div>
+            <b style="font-size:13px">Reemplazo escaneado</b>
+            <div class="dev-qr" style="font-family:'Space Grotesk';color:var(--mint);font-weight:700;font-size:13px">PRS-CR-99Z1</div>
+            <div class="dev-nfc" style="font-family:'Space Grotesk';color:var(--mint);font-weight:700;font-size:13px">PRS-NFC-99Z1</div>
+          </div>
+          <button class="btn btn-coral">Bloquear y migrar saldo</button>
+          <p class="muted" style="font-size:12px;text-align:center">El extraviado queda bloqueado y el saldo pasa al nuevo en una sola operación.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= POS ======================= -->
+  <section class="section" id="tab-pos">
+    <div style="display:flex;gap:24px;flex-wrap:wrap;justify-content:center">
+      <div class="frame frame-pos" style="flex:1;min-width:340px;max-width:520px">
+        <div class="frame-label">Punto de venta · esperando escaneo</div>
+        <div class="scanner-mock" style="padding:36px 24px">
+          <div class="lens" style="width:150px;height:150px">
+            <div class="focus-corners"><i></i><i></i><i></i><i></i></div>
+            <span class="dev-qr" style="font-size:44px;line-height:150px">▣</span>
+            <span class="dev-nfc" style="font-size:28px;line-height:150px">◉</span>
+          </div>
+          <b style="font-size:16px" class="dev-qr">Acerca el código QR</b>
+          <b style="font-size:16px" class="dev-nfc">Acerca la pulsera NFC</b>
+          <span class="muted" style="font-size:13px;display:block;margin-top:4px">Escanea el QR de la pulsera o el dispositivo NFC del asistente</span>
+        </div>
+        <div class="pill-row" style="margin-top:16px">
+          <button class="pill dev-qr pill-solid" style="flex:none;padding:10px 18px"><span class="ico">▣</span>QR</button>
+          <button class="pill dev-nfc pill-solid" style="flex:none;padding:10px 18px"><span class="ico">◉</span>NFC</button>
+          <button class="pill pill-line" style="flex:none;padding:10px 18px">↩ Manual</button>
+        </div>
+      </div>
+
+      <div class="frame frame-pos" style="flex:1;min-width:340px;max-width:520px">
+        <div class="frame-label">Cobro · dispositivo escaneado</div>
+        <div class="card" style="padding:16px 18px;display:flex;align-items:center;gap:12px;border-color:transparent;background:linear-gradient(135deg,#EEF0FF,#F8F9FF)">
+          <span style="width:46px;height:46px;border-radius:16px;background:var(--grad-brand);color:#fff;display:grid;place-items:center;font-size:18px">🧒</span>
+          <div style="flex:1;min-width:0">
+            <b style="font-size:15px;display:block">Valeria Sancho</b>
+            <span class="muted" style="font-size:12px">Saldo <b style="color:var(--ink)">₡ 7 400</b> · 2 pagos hoy</span>
+          </div>
+          <span class="chip chip-payment">✓ Activo</span>
+        </div>
+        <div class="total-display">
+          <span class="cur">₡</span>&nbsp;<span class="num">3 500</span>
+        </div>
+        <div class="keypad">
+          <button>1</button><button>2</button><button>3</button>
+          <button>4</button><button>5</button><button>6</button>
+          <button>7</button><button>8</button><button>9</button>
+          <button>.</button><button>0</button><button>⌫</button>
+        </div>
+        <button class="btn btn-primary" style="margin-top:14px;padding:18px">COBRAR ₡3 500</button>
+        <div class="legend" style="justify-content:center">
+          <span><i style="background:var(--mint)"></i>Vibra</span>
+          <span><i style="background:var(--amber)"></i>Sonido</span>
+          <span><i style="background:var(--violet)"></i>Flash verde</span>
+        </div>
+      </div>
+
+      <div class="frame frame-pos" style="flex:1;min-width:340px;max-width:520px">
+        <div class="frame-label">Feedback · éxito</div>
+        <div class="success-flash">
+          <div class="big">🎉</div>
+          <b>Cobrado con éxito</b>
+          <span style="font-family:'Space Grotesk';font-size:28px;font-weight:700">₡ 3 500</span>
+          <div style="margin-top:10px;font-size:13px;opacity:.9">Nuevo saldo de Valeria: <b>₡ 3 900</b></div>
+        </div>
+        <div class="card" style="margin-top:14px">
+          <h3>🕒 Esperando siguiente pago</h3>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost" style="font-size:13px">Nuevo cobro</button>
+            <button class="btn btn-coral" style="font-size:13px">Repetir monto ₡3 500</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= ADMIN ======================= -->
+  <section class="section" id="tab-admin">
+    <div class="admin-layout">
+      <nav class="admin-nav">
+        <a class="active">📊 Dashboard</a>
+        <a>🏪 Sucursales</a>
+        <a>👥 Personal</a>
+        <a>📟 Dispositivos</a>
+        <a>🧾 Transacciones</a>
+        <a>↩ Reembolsos</a>
+      </nav>
+      <div style="display:flex;flex-direction:column;gap:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <h2 style="font-size:20px;font-weight:800">FERIA DEMO <span class="chip" style="background:var(--mint-soft);color:#1F9B73;font-size:11px">● En vivo</span></h2>
+            <p class="muted" style="font-size:13px">Dashboard actualizado hace unos segundos</p>
+          </div>
+          <div class="pill-row" style="gap:8px">
+            <button class="pill pill-line" style="flex:none;padding:10px 16px;font-size:12px">📅 Hoy</button>
+            <button class="pill pill-solid" style="flex:none;padding:10px 16px;font-size:12px">Exportar</button>
+          </div>
+        </div>
+
+        <div class="kpis">
+          <div class="kpi"><div class="ico" style="background:var(--lilac)">💰</div><div class="k">Ventas hoy</div><div class="v">₡124 800</div><div class="d up">▲ 12,4% vs ayer</div></div>
+          <div class="kpi"><div class="ico" style="background:var(--mint-soft)">⚡</div><div class="k">Transacciones hoy</div><div class="v">342</div><div class="d up">▲ 8,1%</div></div>
+          <div class="kpi"><div class="ico" style="background:var(--amber-soft)">🪙</div><div class="k">Saldo circulante</div><div class="v">₡982 410</div><div class="d down">▼ 2,3%</div></div>
+          <div class="kpi"><div class="ico" style="background:var(--coral-soft)">🔥</div><div class="k">Dispositivos activos</div><div class="v">1 248</div><div class="d up">▲ 6 nuevas hoy</div></div>
+        </div>
+
+        <div class="grid grid-admin">
+          <div class="card">
+            <h3>📈 Ingresos por hora</h3>
+            <svg viewBox="0 0 600 200" style="width:100%;height:auto">
+              <defs>
+                <linearGradient id="fillA" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#5D6EE2" stop-opacity=".35"/>
+                  <stop offset="100%" stop-color="#5D6EE2" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <path d="M0,150 C40,140 60,120 90,118 C120,116 140,128 170,96 C200,64 230,70 260,80 C290,90 320,52 350,48 C380,44 410,66 440,30 C470,-6 500,26 540,10 C560,2 580,8 600,0 L600,200 L0,200 Z" fill="url(#fillA)"/>
+              <path d="M0,150 C40,140 60,120 90,118 C120,116 140,128 170,96 C200,64 230,70 260,80 C290,90 320,52 350,48 C380,44 410,66 440,30 C470,-6 500,26 540,10 C560,2 580,8 600,0" fill="none" stroke="#5D6EE2" stroke-width="3.5" stroke-linecap="round"/>
+              <path d="M0,175 C50,170 80,158 110,150 C150,140 190,150 220,132 C260,110 300,120 340,104 C380,88 420,96 460,72 C500,50 540,60 600,40" fill="none" stroke="#FE8F6C" stroke-width="3" stroke-dasharray="6 6" stroke-linecap="round"/>
+              <circle cx="350" cy="48" r="6" fill="#fff" stroke="#5D6EE2" stroke-width="3"/>
+              <text x="30" y="195" font-size="11" fill="#6B6791">08:00</text>
+              <text x="240" y="195" font-size="11" fill="#6B6791">12:00</text>
+              <text x="450" y="195" font-size="11" fill="#6B6791">16:00</text>
+              <text x="540" y="195" font-size="11" fill="#6B6791">20:00</text>
+            </svg>
+            <div class="legend">
+              <span><i style="background:var(--violet)"></i>Ingresos</span>
+              <span><i style="background:var(--coral)"></i>Tx / min</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>⚡ Actividad en vivo</h3>
+            <div class="feed-item">
+              <span style="width:38px;height:38px;border-radius:13px;background:var(--mint-soft);display:grid;place-items:center;font-size:15px">🍜</span>
+              <div style="flex:1;min-width:0"><b style="font-size:13px;display:block">Tacos La Esquina</b><span class="muted" style="font-size:11px">Sucursal Centro · hace 4 s</span></div>
+              <b style="font-family:'Space Grotesk'">₡3 500</b>
+            </div>
+            <div class="feed-item">
+              <span style="width:38px;height:38px;border-radius:13px;background:var(--lilac);display:grid;place-items:center;font-size:15px">🔋</span>
+              <div style="flex:1;min-width:0"><b style="font-size:13px;display:block">Recarga quiosco</b><span class="muted" style="font-size:11px">Quiosco Norte · hace 1 min</span></div>
+              <b style="font-family:'Space Grotesk';color:var(--violet-deep)">+₡10 000</b>
+            </div>
+            <div class="feed-item">
+              <span style="width:38px;height:38px;border-radius:13px;background:var(--coral-soft);display:grid;place-items:center;font-size:15px">↩</span>
+              <div style="flex:1;min-width:0"><b style="font-size:13px;display:block">Reembolso solicitado</b><span class="muted" style="font-size:11px">Fabián R. · hace 6 min</span></div>
+              <b style="font-family:'Space Grotesk'">₡5 000</b>
+            </div>
+            <div style="margin-top:12px">
+              <div class="legend" style="gap:8px"><span><i style="background:var(--mint)"></i>24 en vivo</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-admin-wide">
+          <div class="card">
+            <h3>🏪 Sucursales más activas</h3>
+            <table class="table">
+              <thead><tr><th>Sucursal</th><th>Tipo</th><th>Ventas</th><th>Tx</th><th>Mini gráfica</th></tr></thead>
+              <tbody>
+                <tr><td><span class="avatar">C</span> Sucursal Centro</td><td>POS</td><td>₡48 200</td><td>132</td><td><div class="spark"><span style="height:20%"></span><span style="height:40%"></span><span style="height:32%"></span><span style="height:60%"></span><span style="height:80%"></span></div></td></tr>
+                <tr><td><span class="avatar">P</span> Paseo de las Flores</td><td>POS</td><td>₡41 010</td><td>118</td><td><div class="spark"><span style="height:30%"></span><span style="height:25%"></span><span style="height:50%"></span><span style="height:45%"></span><span style="height:70%"></span></div></td></tr>
+                <tr><td><span class="avatar">N</span> Quiosco Norte</td><td>Recarga</td><td>₡35 590</td><td>92</td><td><div class="spark"><span style="height:50%"></span><span style="height:70%"></span><span style="height:55%"></span><span style="height:85%"></span><span style="height:65%"></span></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="card">
+            <h3>🧾 Últimas transacciones</h3>
+            <div class="feed-item">
+              <span class="avatar" style="background:var(--grad-coral)">V</span>
+              <div style="flex:1;min-width:0"><b style="font-size:13px;display:block">Pago · Centro</b><span class="muted" style="font-size:11px">PRS-CR-88F2 · 13:42</span></div>
+              <span class="chip chip-payment">Pago</span>
+              <b style="font-family:'Space Grotesk'">−₡3 500</b>
+            </div>
+            <div class="feed-item">
+              <span class="avatar" style="background:var(--grad-brand)">A</span>
+              <div style="flex:1;min-width:0"><b style="font-size:13px;display:block">Recarga · Quiosco N.</b><span class="muted" style="font-size:11px">PRS-CR-9010 · 12:58</span></div>
+              <span class="chip chip-topup">Recarga</span>
+              <b style="font-family:'Space Grotesk';color:var(--violet-deep)">+₡10 000</b>
+            </div>
+            <div class="feed-item">
+              <span class="avatar" style="background:var(--mint)">D</span>
+              <div style="flex:1;min-width:0"><b style="font-size:13px;display:block">Migración · Norte</b><span class="muted" style="font-size:11px">PRS-CR-114A → 99Z1</span></div>
+              <span class="chip chip-mig">Migración</span>
+              <b style="font-family:'Space Grotesk'">₡7 400</b>
+            </div>
+            <div style="margin-top:14px"><button class="btn btn-ghost">Ver historial completo</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <p class="footnote">
+    <b>Este preview es solo maqueta de UI (HTML standalone, sin conexión a datos).</b><br />
+    La propuesta incluye: design tokens (colores, radios, sombras, tipografía), lenguaje visual compartido web + móvil,
+    y mejoras de interacción (vibración, sonido, flash) listas para implementar en React con el sistema actual.
+  </p>
+
+<script>
+  document.querySelectorAll('.switch button').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.switch button').forEach(function (b) { b.classList.remove('active'); });
+      document.querySelectorAll('.section').forEach(function (s) { s.classList.remove('active'); });
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  document.querySelectorAll('.type-switch button').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.type-switch button').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      if (btn.dataset.device === 'nfc') {
+        document.body.classList.add('mode-nfc');
+      } else {
+        document.body.classList.remove('mode-nfc');
+      }
+    });
+  });
+</script>
+</body>
+</html>

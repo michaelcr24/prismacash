@@ -1,0 +1,218 @@
+@import "tailwindcss";
+
+/*
+ * Sistema de diseño PrismaCash — ver PrismaCash-Plan.html §8.7 (Mockups).
+ * UI clara de alto contraste, pensada para tablets al sol en un chinamo,
+ * no para una sala oscura. Los valores por defecto de marca siguen la
+ * paleta del plan; el branding dinámico por evento los sobreescribe en
+ * runtime desde `events.brand_primary` / `events.brand_secondary`.
+ */
+@theme {
+  --font-sans: "Work Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Big Shoulders Display", "Work Sans", ui-sans-serif, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* superficie y tinta */
+  --color-paper: #efeee6;
+  --color-paper-raised: #faf9f3;
+  --color-ink: #1a1d1b;
+  --color-ink-soft: #5b5f55;
+  --color-ink-faint: #82867b;
+  --color-line: #d9d6c6;
+
+  /* acentos */
+  --color-marigold: #b5691a;
+  --color-marigold-fill: #e2a63b;
+  --color-marigold-bg: #fbeeda;
+  --color-signal: #187a5d;
+  --color-signal-fill: #1e8f6f;
+  --color-signal-bg: #e4f3ec;
+  --color-rust: #a63f22;
+  --color-rust-fill: #c1542e;
+  --color-rust-bg: #f7e7e1;
+}
+
+:root {
+  /* Fallback antes de resolver la config del evento (sección 8.5 del plan).
+   * Al cargar /e/:eventSlug se sobreescriben desde `events.brand_primary` /
+   * `events.brand_secondary`. Valores por defecto alineados a la paleta. */
+  --brand-primary: #b5691a;
+  --brand-secondary: #187a5d;
+  --brand-ink: #1a1d1b;
+  --brand-paper: #efeee6;
+}
+
+@layer base {
+  body {
+    @apply bg-paper text-ink font-sans antialiased;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    font-weight: 700;
+  }
+  ::selection {
+    background: var(--color-marigold-fill);
+    color: #1a1d1b;
+  }
+}
+
+@layer components {
+  /* ---------- superficie ---------- */
+  .card {
+    @apply rounded-lg border border-line bg-paper-raised;
+  }
+  .table-card {
+    @apply overflow-x-auto rounded-lg border border-line bg-paper-raised;
+  }
+  .ui-topbar {
+    @apply flex items-center justify-between text-[0.62rem] uppercase tracking-wider text-ink-faint;
+  }
+  .ui-topbar b {
+    @apply font-bold text-ink;
+  }
+  .ui-online {
+    @apply inline-flex items-center gap-1.5 text-signal;
+  }
+
+  /* ---------- etiquetas / pills ---------- */
+  .pill {
+    @apply inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-0.5 font-mono text-[0.66rem] font-semibold;
+  }
+  .pill .dot {
+    @apply h-1 w-1 rounded-full;
+  }
+  .pill-ok {
+    @apply bg-signal-bg text-signal;
+  }
+  .pill-ok .dot {
+    @apply bg-signal;
+  }
+  .pill-warn {
+    @apply bg-rust-bg text-rust;
+  }
+  .pill-warn .dot {
+    @apply bg-rust;
+  }
+  .pill-gold {
+    @apply bg-marigold-bg text-marigold;
+  }
+  .pill-gold .dot {
+    @apply bg-marigold;
+  }
+  .pill-mute {
+    @apply border border-line bg-paper text-ink-faint;
+  }
+  .chip {
+    @apply whitespace-nowrap rounded border border-line bg-paper px-1.5 py-0.5 font-mono text-[0.6rem] text-ink-soft;
+  }
+
+  /* ---------- botones ---------- */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md border border-line bg-paper-raised px-3.5 py-2 font-mono text-xs uppercase tracking-wider text-ink-soft hover:text-ink;
+  }
+  .cta-solid {
+    @apply w-full rounded-md bg-signal-fill py-3 text-center text-sm font-bold uppercase tracking-wide text-white hover:bg-signal;
+  }
+  .cta-gold {
+    @apply w-full rounded-md bg-marigold-fill py-3 text-center text-sm font-bold uppercase tracking-wide text-[#2a1b06] hover:bg-marigold;
+  }
+  .cta-ghost {
+    @apply w-full rounded-md border border-dashed border-line bg-transparent py-3 text-center text-sm font-bold uppercase tracking-wide text-rust hover:border-rust;
+  }
+
+  /* ---------- formularios ---------- */
+  .field {
+    @apply flex flex-col gap-1 text-sm;
+  }
+  .field label {
+    @apply font-mono text-[0.62rem] uppercase tracking-wider text-ink-faint;
+  }
+  .field .val {
+    @apply rounded-md border border-line bg-paper-raised px-3 py-2 text-sm;
+  }
+  .input {
+    @apply w-full rounded-md border border-line bg-paper-raised px-3 py-2 text-sm text-ink outline-none focus:border-marigold;
+  }
+  .quick-btn {
+    @apply flex-1 rounded-md border border-line bg-paper-raised py-2 font-mono text-xs text-ink-soft hover:border-marigold;
+  }
+  .quick-row {
+    @apply flex gap-2;
+  }
+
+  /* ---------- POS ---------- */
+  .amount-display {
+    @apply py-2 text-center font-mono text-4xl font-semibold tracking-tight text-ink;
+  }
+  .key {
+    @apply rounded-md border border-line bg-paper-raised py-3 text-center font-mono text-lg text-ink active:bg-marigold-bg;
+  }
+  .avatar {
+    @apply flex h-9 w-9 flex-none items-center justify-center rounded-full bg-marigold-bg font-mono text-xs font-bold text-marigold;
+  }
+
+  /* ---------- dashboard ---------- */
+  .kpi {
+    @apply rounded-lg border border-line bg-paper-raised p-4;
+  }
+  .kpi .cap {
+    @apply mb-1 block font-mono text-[0.58rem] uppercase tracking-wider text-ink-faint;
+  }
+  .kpi .val {
+    @apply font-mono text-lg font-bold text-ink;
+  }
+  .feed {
+    @apply flex flex-col gap-1.5;
+  }
+  .feed-row {
+    @apply grid grid-cols-[auto_1fr_auto_auto] items-center gap-2 rounded-md border border-line bg-paper-raised px-3 py-2 text-xs;
+  }
+  .feed-row .amt {
+    @apply font-mono font-semibold;
+  }
+  .feed-row .amt.pos {
+    @apply text-signal;
+  }
+  .feed-row .amt.neg {
+    @apply text-rust;
+  }
+  .feed-row .time {
+    @apply font-mono text-[0.6rem] text-ink-faint;
+  }
+
+  /* ---------- tablas ---------- */
+  .table-card table {
+    @apply w-full text-left text-sm;
+  }
+  .table-card thead th {
+    @apply border-b border-line bg-paper px-3 py-2 text-left font-mono text-[0.66rem] font-medium uppercase tracking-wider text-ink-faint;
+  }
+  .table-card tbody td {
+    @apply border-b border-line px-3 py-2 align-top;
+  }
+  .table-card tbody tr:last-child td {
+    @apply border-b-0;
+  }
+  .table-card tbody tr:hover {
+    @apply bg-paper;
+  }
+
+  /* ---------- navegación admin ---------- */
+  .navlink {
+    @apply -ml-px flex items-center gap-2.5 border-l-2 border-transparent px-3 py-2 text-sm text-ink-soft hover:text-ink;
+  }
+  .navlink .n {
+    @apply font-mono text-[0.7rem] text-ink-faint;
+  }
+  .navlink[aria-current="page"] {
+    @apply border-l-marigold font-semibold text-ink;
+  }
+  .navlink[aria-current="page"] .n {
+    @apply text-marigold;
+  }
+}
