@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { DeviceScanner } from '../components/DeviceScanner'
 import { useEvent } from '../hooks/useEvent'
 import { readFunctionErrorCode } from '../lib/functionError'
 import { supabase } from '../lib/supabase'
+import { useSessionRole } from '../hooks/useSessionRole'
 
 type ChargeResult =
   | { ok: true; new_balance: number; tx_id: string }
@@ -33,6 +34,7 @@ function formatAmount(s: string): string {
  */
 export default function Pos() {
   const { eventSlug } = useParams()
+  const role = useSessionRole()
   const { data: event } = useEvent(eventSlug)
   const [deviceUid, setDeviceUid] = useState<string | null>(null)
   const [amount, setAmount] = useState('')
@@ -84,6 +86,11 @@ export default function Pos() {
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col gap-4 p-4">
       <header className="ui-topbar">
+        {role === 'super_admin' && (
+          <Link to={`/e/${eventSlug}/admin`} className="text-xs font-bold uppercase tracking-wider text-ink-soft hover:text-violet">
+            ← Dashboard
+          </Link>
+        )}
         <b>Punto de venta</b>
         <span>
           <span className="mr-3 font-normal normal-case">{event?.name ?? eventSlug}</span>
