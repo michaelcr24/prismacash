@@ -56,11 +56,11 @@ export default function CreateUserModal({
     return (
       <Modal title="Usuario creado" onClose={onClose}>
         <p className="text-sm text-ink-soft">
-          {email} ya puede iniciar sesiÃ³n{createdPassword && ' con la contraseÃ±a temporal indicada abajo.'}
+          {email} ya puede iniciar sesión{createdPassword && ' con la contraseña temporal indicada abajo.'}
         </p>
         {createdPassword && (
           <div className="mt-4 rounded-2xl border-[1.5px] border-line bg-lilac p-4">
-            <p className="text-xs font-bold text-ink-soft">ContraseÃ±a temporal (no se vuelve a mostrar)</p>
+            <p className="text-xs font-bold text-ink-soft">Contraseña temporal (no se vuelve a mostrar)</p>
             <p className="font-mono text-lg font-bold text-violet">{createdPassword}</p>
           </div>
         )}
@@ -86,7 +86,7 @@ export default function CreateUserModal({
             <input className="input" value={fullName} onChange={(e) => setFullName(e.target.value)} />
           </div>
           <div className="field">
-            <label>TelÃ©fono (opcional)</label>
+            <label>Teléfono (opcional)</label>
             <input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} />
           </div>
           <div className="field">
@@ -103,11 +103,11 @@ export default function CreateUserModal({
               onChange={(e) => setAutoPassword(e.target.checked)}
               className="h-4 w-4"
             />
-            Generar contraseÃ±a automÃ¡ticamente
+            Generar contraseña automáticamente
           </label>
           {!autoPassword && (
             <div className="field">
-              <label>ContraseÃ±a</label>
+              <label>Contraseña</label>
               <input
                 className="input"
                 type="password"
@@ -152,7 +152,7 @@ export default function CreateUserModal({
               </div>
             </>
           ) : (
-            <p className="text-sm text-ink-soft">Se asignarÃ¡ como administrador de este evento.</p>
+            <p className="text-sm text-ink-soft">Se asignará como administrador de este evento.</p>
           )}
           {error && <p className="text-sm text-rust">{error}</p>}
           <div className="mt-2 flex justify-end gap-2">
@@ -165,7 +165,7 @@ export default function CreateUserModal({
               disabled={busy}
               onClick={() => void handleSubmit()}
             >
-              {busy ? 'Creandoâ€¦' : 'Crear usuario'}
+              {busy ? 'Creando…' : 'Crear usuario'}
             </button>
           </div>
         </div>
