@@ -12,6 +12,7 @@ export interface EventRow {
   brand_secondary: string
   logo_url: string | null
   currency: string
+  org_id: string | null
 }
 
 /**
@@ -29,7 +30,7 @@ export function useEvent(eventSlug: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('events')
-        .select('id, slug, name, status, device_type, brand_primary, brand_secondary, logo_url, currency')
+        .select('id, slug, name, status, device_type, brand_primary, brand_secondary, logo_url, currency, org_id')
         .eq('slug', eventSlug)
         .single()
       if (error) throw error
