@@ -1,87 +1,71 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import { useEvent } from '../../hooks/useEvent'
 import { useSessionRole } from '../../hooks/useSessionRole'
 import { supabase } from '../../lib/supabase'
+import UserTable from './staff/UserTable'
+import CreateUserModal from './staff/CreateUserModal'
+import InviteUserModal from './staff/InviteUserModal'
+import EditUserModal from './staff/EditUserModal'
+import ConfirmDialog from './staff/ConfirmDialog'
+import { deleteUser, type UserApiError } from './staff/api'
+import type { StaffUserRow } from './staff/api'
 
-interface EventAdminRow {
-  id: string
-  profile: { id: string; full_name: string | null; phone: string | null; role: string }
+type Tab = 'all' | 'admins' | 'operators'
+
+interface AdminBridge {
+  user_id: string
+}
+interface MemberBridge {
+  profile: { id: string }
+  branch: { id: string; name: string } | null
 }
 
-interface BranchMemberRow {
-  id: string
-  profile: { id: string; full_name: string | null; phone: string | null; role: string }
-  branch: { id: string; name: string; type: string }
-}
+const TABS: { value: Tab; label: string }[] = [
+  { value: 'all', label: 'Todos' },
+  { value: 'admins', label: 'Admins' },
+  { value: 'operators', label: 'Operadores' },
+]
 
-const ROLE_LABEL: Record<string, string> = {
-  super_admin: 'Super admin',
-  event_admin: 'Admin del evento',
-  operator: 'Operador',
-}
-
-const BRANCH_TYPE_LABEL: Record<string, string> = {
-  recharge_kiosk: 'Quiosco de recarga',
-  sales_point: 'Punto de venta',
-  both: 'Ambos',
-}
-
-interface BranchOption {
-  id: string
-  name: string
-  type: string
-}
-
-interface OperatorRow {
-  id: string
-  full_name: string | null
-  phone: string | null
-}
-
-/** Personal del evento (lectura). La gestión de roles/asignaciones queda
- *  para super_admin por ahora. */
 export default function Staff() {
   const { eventSlug } = useParams()
   const { data: event } = useEvent(eventSlug)
   const eventId = event?.id
-
   const role = useSessionRole()
-  const queryClient = useQueryClient()
   const isSuperAdmin = role === 'super_admin'
+  const queryClient = useQueryClient()
 
-  const [selectedBranchId, setSelectedBranchId] = useState('')
-  const [selectedUserId, setSelectedUserId] = useState('')
-  const [mutating, setMutating] = useState(false)
+  const [tab, setTab] = useState<Tab>('all')
+  const [search, setSearch] = useState('')
+  const [creating, setCreating] = useState<'none' | 'manual' | 'invite'>('none')
+  const [editing, setEditing] = useState<StaffUserRow | null>(null)
+  const [deleting, setDeleting] = useState<StaffUserRow | null>(null)
   const [mutError, setMutError] = useState<string | null>(null)
+  const [mutBusy, setMutBusy] = useState(false)
 
-  const { data: admins, isPending: adminsPending } = useQuery({
+  const { data: users, isPending } = useQuery({
+    queryKey: ['admin-staff-users', eventId, isSuperAdmin],
+    enabled: Boolean(eventId),
+    queryFn: async () => {
+      let q = supabase.from('staff_users').select('id, org_id, email, full_name, phone, role')
+      if (isSuperAdmin && event?.org_id) q = q.eq('org_id', event.org_id)
+      const { data, error } = await q
+      if (error) throw error
+      return (data ?? []) as Pick<StaffUserRow, 'id' | 'email' | 'full_name' | 'phone' | 'role'>[]
+    },
+  })
+
+  const { data: admins } = useQuery({
     queryKey: ['admin-staff-admins', eventId],
     enabled: Boolean(eventId),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('event_admins')
-        .select('id, profile(id, full_name, phone, role)')
+        .select('user_id')
         .eq('event_id', eventId!)
       if (error) throw error
-      return (data ?? []) as unknown as EventAdminRow[]
-    },
-  })
-
-  const { data: members, isPending: membersPending } = useQuery({
-    queryKey: ['admin-staff-members', eventId],
-    enabled: Boolean(eventId),
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('branch_members')
-        .select('id, profile(id, full_name, phone, role), branch(id, name, type)')
-        .in(
-          'branch_id',
-          (await supabase.from('branches').select('id').eq('event_id', eventId!)).data?.map((b) => b.id) ?? [],
-        )
-      if (error) throw error
-      return (data ?? []) as unknown as BranchMemberRow[]
+      return (data ?? []) as unknown as AdminBridge[]
     },
   })
 
@@ -95,195 +79,179 @@ export default function Staff() {
         .eq('event_id', eventId!)
         .order('created_at', { ascending: true })
       if (error) throw error
-      return (data ?? []) as BranchOption[]
+      return (data ?? []) as { id: string; name: string; type: string }[]
     },
   })
 
-  const { data: operators } = useQuery({
-    queryKey: ['admin-staff-operators'],
-    enabled: isSuperAdmin,
+  const { data: members } = useQuery({
+    queryKey: ['admin-staff-members', eventId],
+    enabled: Boolean(eventId) && Boolean(branches?.length),
     queryFn: async () => {
+      const branchIds = (branches ?? []).map((b) => b.id)
       const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, phone')
-        .eq('role', 'operator')
+        .from('branch_members')
+        .select('profile(id), branch(id, name)')
+        .in('branch_id', branchIds)
       if (error) throw error
-      return (data ?? []) as OperatorRow[]
+      return (data ?? []) as unknown as MemberBridge[]
     },
   })
 
-  const pending = adminsPending || membersPending
-
-  async function handleAssign(e: React.FormEvent) {
-    e.preventDefault()
-    if (!eventId || !selectedBranchId || !selectedUserId) return
-    setMutating(true)
-    setMutError(null)
-    try {
-      const { error } = await supabase
-        .from('branch_members')
-        .insert({ user_id: selectedUserId, branch_id: selectedBranchId })
-      if (error) {
-        setMutError(
-          error.code === '23505'
-            ? 'No se pudo asignar: es posible que la persona ya esté en esa sucursal.'
-            : 'No se pudo asignar. Intenta de nuevo.',
-        )
-        return
-      }
-      queryClient.invalidateQueries({ queryKey: ['admin-staff-members', eventId] })
-      queryClient.invalidateQueries({ queryKey: ['admin-staff-operators'] })
-      setSelectedUserId('')
-    } finally {
-      setMutating(false)
+  const adminIds = useMemo(() => new Set((admins ?? []).map((a) => a.user_id as string)), [admins])
+  const branchByUser = useMemo(() => {
+    const map = new Map<string, { branch_id: string; branch_name: string }[]>()
+    for (const m of members ?? []) {
+      const userId = m.profile?.id
+      if (!userId || !m.branch) continue
+      const list = map.get(userId) ?? []
+      list.push({ branch_id: m.branch.id, branch_name: m.branch.name })
+      map.set(userId, list)
     }
+    return map
+  }, [members])
+
+  const rows = useMemo<StaffUserRow[]>(() => {
+    const all = (users ?? []).map((u) => {
+      const assignments =
+        u.role === 'operator' ? (branchByUser.get(u.id) ?? []) : adminIds.has(u.id) ? [{ branch_id: null, branch_name: null }] : []
+      return { ...u, assignments }
+    })
+    const filtered = tab === 'all' ? all : all.filter((u) => (tab === 'admins' ? u.role === 'event_admin' : u.role === 'operator'))
+    const q = search.trim().toLowerCase()
+    if (!q) return filtered
+    return filtered.filter((u) => (u.full_name ?? '').toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
+  }, [users, adminIds, branchByUser, tab, search])
+
+  function refresh() {
+    queryClient.invalidateQueries({ queryKey: ['admin-staff-users', eventId, isSuperAdmin] })
+    queryClient.invalidateQueries({ queryKey: ['admin-staff-admins', eventId] })
+    queryClient.invalidateQueries({ queryKey: ['admin-staff-members', eventId] })
+    queryClient.invalidateQueries({ queryKey: ['admin-staff-branches', eventId] })
   }
 
-  async function handleRemove(memberId: string) {
-    if (!eventId) return
-    setMutating(true)
+  function closeModals() {
+    setCreating('none')
+    setEditing(null)
     setMutError(null)
-    try {
-      const { error } = await supabase.from('branch_members').delete().eq('id', memberId)
-      if (error) {
-        setMutError('No se pudo quitar la asignación.')
-        return
-      }
-      queryClient.invalidateQueries({ queryKey: ['admin-staff-members', eventId] })
-    } finally {
-      setMutating(false)
-    }
   }
 
-  const assignedUserIdsInBranch = new Set(
-    (members ?? [])
-      .filter((m) => m.branch?.id === selectedBranchId)
-      .map((m) => m.profile?.id),
-  )
-  const availableOperators = (operators ?? []).filter((o) => !assignedUserIdsInBranch.has(o.id))
+  async function handleDelete() {
+    if (!deleting) return
+    setMutBusy(true)
+    setMutError(null)
+    try {
+      await deleteUser(deleting.id)
+      setDeleting(null)
+      refresh()
+    } catch (e) {
+      setMutError((e as UserApiError).message)
+    } finally {
+      setMutBusy(false)
+    }
+  }
 
   return (
     <div>
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h1 className="text-3xl font-extrabold tracking-wide">Personal</h1>
-        <span className="font-mono text-xs text-ink-faint">
-          {(admins?.length ?? 0) + (members?.length ?? 0)} personas
-        </span>
+        <span className="font-mono text-xs text-ink-faint">{rows.length} personas</span>
       </div>
 
-      <div className="mt-5 flex flex-col gap-3">
-        {isSuperAdmin && (
-          <form onSubmit={handleAssign} className="card flex flex-col gap-3 p-4">
-            <p className="text-sm font-bold">Asociar persona a sucursal</p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="field">
-                <label>Sucursal</label>
-                <select
-                  value={selectedBranchId}
-                  onChange={(e) => {
-                    setSelectedBranchId(e.target.value)
-                    setSelectedUserId('')
-                  }}
-                  className="input"
-                  required
-                >
-                  <option value="">Selecciona…</option>
-                  {branches?.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name} · {BRANCH_TYPE_LABEL[b.type] ?? b.type}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="field">
-                <label>Persona</label>
-                <select
-                  value={selectedUserId}
-                  onChange={(e) => setSelectedUserId(e.target.value)}
-                  className="input"
-                  required
-                >
-                  <option value="">Selecciona…</option>
-                  {availableOperators.map((o) => (
-                    <option key={o.id} value={o.id}>
-                      {o.full_name ?? o.phone ?? 'Sin nombre'}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            {mutError && <p className="text-sm text-rust">{mutError}</p>}
-            <button
-              type="submit"
-              disabled={!selectedBranchId || !selectedUserId || mutating}
-              className="cta-solid disabled:opacity-50"
-            >
-              {mutating ? 'Asignando…' : 'Asignar'}
-            </button>
-          </form>
-        )}
-
-        {pending && <p className="text-sm text-ink-faint">Cargando…</p>}
-        {!pending && admins?.length === 0 && members?.length === 0 && (
-          <p className="text-sm text-ink-faint">Sin personal asignado a este evento.</p>
-        )}
-
-        {admins?.map((a) => (
-          <PersonCard key={a.id} name={a.profile?.full_name ?? 'Sin nombre'} role={a.profile?.role ?? 'event_admin'} phone={a.profile?.phone} branch={null} />
-        ))}
-
-        {members?.map((m) => (
-          <PersonCard
-            key={m.id}
-            name={m.profile?.full_name ?? 'Sin nombre'}
-            role={m.profile?.role ?? 'operator'}
-            phone={m.profile?.phone}
-            branch={m.branch?.name ?? '—'}
-            onRemove={isSuperAdmin ? () => handleRemove(m.id) : undefined}
-            disabled={mutating}
-          />
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function PersonCard({
-  name,
-  role,
-  phone,
-  branch,
-  onRemove,
-  disabled,
-}: {
-  name: string
-  role: string
-  phone: string | null
-  branch: string | null
-  onRemove?: () => void
-  disabled?: boolean
-}) {
-  return (
-    <div className="card flex items-center justify-between gap-3 p-4">
-      <div>
-        <p className="font-semibold">{name}</p>
-        <p className="text-xs text-ink-soft">
-          {phone ?? 'Sin teléfono'} {branch ? `· ${branch}` : ''}
-        </p>
-      </div>
-      <div className="flex flex-col items-end gap-1">
-        <span className="pill pill-mute">{ROLE_LABEL[role] ?? role}</span>
-        {onRemove && (
-          <button
-            type="button"
-            onClick={onRemove}
-            disabled={disabled}
-            className="text-xs text-ink-faint underline underline-offset-2 hover:text-rust disabled:opacity-50"
-          >
-            Quitar
+      {isSuperAdmin && (
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <button type="button" className="cta-solid max-w-[200px] text-sm" onClick={() => setCreating('manual')}>
+            Crear usuario
           </button>
-        )}
+          <button type="button" className="btn" onClick={() => setCreating('invite')}>
+            Invitar por email
+          </button>
+          <input
+            className="input max-w-[280px]"
+            placeholder="Buscar por nombre o email…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+      )}
+
+      {!isSuperAdmin && (
+        <input
+          className="input mt-4 max-w-[280px]"
+          placeholder="Buscar por nombre o email…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      )}
+
+      <div className="mt-5 flex gap-2">
+        {TABS.map((t) => (
+          <button
+            key={t.value}
+            type="button"
+            onClick={() => setTab(t.value)}
+            className={tab === t.value ? 'pill pill-gold' : 'pill pill-mute'}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
+
+      {mutError && <p className="mt-3 text-sm text-rust">{mutError}</p>}
+      {isPending && <p className="mt-4 text-sm text-ink-faint">Cargando…</p>}
+      {!isPending && (
+        <UserTable
+          rows={rows}
+          canManage={isSuperAdmin}
+          onEdit={(u) => setEditing(u as StaffUserRow)}
+          onDelete={(u) => setDeleting(u as StaffUserRow)}
+        />
+      )}
+
+      {creating === 'manual' && eventId && branches && (
+        <CreateUserModal
+          eventId={eventId}
+          branches={branches}
+          onClose={closeModals}
+          onSuccess={() => {
+            closeModals()
+            refresh()
+          }}
+        />
+      )}
+      {creating === 'invite' && eventId && branches && (
+        <InviteUserModal
+          eventId={eventId}
+          branches={branches}
+          onClose={closeModals}
+          onSuccess={() => {
+            closeModals()
+            refresh()
+          }}
+        />
+      )}
+      {editing && eventId && branches && (
+        <EditUserModal
+          user={editing}
+          eventId={eventId}
+          branches={branches}
+          onClose={closeModals}
+          onSuccess={() => {
+            closeModals()
+            refresh()
+          }}
+        />
+      )}
+      {deleting && (
+        <ConfirmDialog
+          title="Eliminar usuario"
+          message={`¿Eliminar a ${deleting.full_name ?? deleting.email}? Esta acción es permanente.`}
+          confirmLabel="Eliminar"
+          danger
+          busy={mutBusy}
+          onConfirm={() => void handleDelete()}
+          onCancel={() => setDeleting(null)}
+        />
+      )}
     </div>
   )
 }
