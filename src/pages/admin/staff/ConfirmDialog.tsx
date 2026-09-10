@@ -8,6 +8,7 @@ export default function ConfirmDialog({
   cancelLabel = 'Cancelar',
   danger = false,
   busy = false,
+  error = null,
   onConfirm,
   onCancel,
 }: {
@@ -18,12 +19,14 @@ export default function ConfirmDialog({
   cancelLabel?: string
   danger?: boolean
   busy?: boolean
+  error?: string | null
   onConfirm: () => void
   onCancel: () => void
 }) {
   return (
     <Modal title={title} onClose={onCancel}>
       <p className="text-sm text-ink-soft">{message}</p>
+      {error && <p className="mt-2 text-sm text-rust">{error}</p>}
       {items.length > 0 && (
         <ul className="mt-3 flex flex-col gap-1.5">
           {items.map((item) => (
