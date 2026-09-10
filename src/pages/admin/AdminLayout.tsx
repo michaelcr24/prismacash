@@ -1,4 +1,4 @@
-import { Link, NavLink, Outlet, useParams } from 'react-router-dom'
+import { Link, Navigate, NavLink, Outlet, useParams } from 'react-router-dom'
 import { useSessionRole } from '../../hooks/useSessionRole'
 
 const NAV = [
@@ -13,6 +13,10 @@ const NAV = [
 export default function AdminLayout() {
   const { eventSlug } = useParams()
   const role = useSessionRole()
+
+  if (role !== 'super_admin' && role !== 'event_admin') {
+    return <Navigate to="/login" replace />
+  }
 
   return (
     <div className="mx-auto grid min-h-dvh w-full max-w-[1440px] gap-4 p-4 md:grid-cols-[230px_1fr] md:p-6">
