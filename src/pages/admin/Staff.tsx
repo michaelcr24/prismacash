@@ -18,7 +18,7 @@ interface AdminBridge {
   user_id: string
 }
 interface MemberBridge {
-  profile: { id: string }
+  user: { id: string }
   branch: { id: string; name: string } | null
 }
 
@@ -90,7 +90,7 @@ export default function Staff() {
       const branchIds = (branches ?? []).map((b) => b.id)
       const { data, error } = await supabase
         .from('branch_members')
-        .select('profile(id), branch(id, name)')
+        .select('user(id), branch(id, name)')
         .in('branch_id', branchIds)
       if (error) throw error
       return (data ?? []) as unknown as MemberBridge[]
@@ -101,7 +101,7 @@ export default function Staff() {
   const branchByUser = useMemo(() => {
     const map = new Map<string, { branch_id: string; branch_name: string }[]>()
     for (const m of members ?? []) {
-      const userId = m.profile?.id
+      const userId = m.user?.id
       if (!userId || !m.branch) continue
       const list = map.get(userId) ?? []
       list.push({ branch_id: m.branch.id, branch_name: m.branch.name })
