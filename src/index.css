@@ -139,6 +139,10 @@
   .btn:active {
     transform: scale(0.98);
   }
+  .btn-active {
+    background: var(--color-ink);
+    color: var(--color-paper);
+  }
   .cta-solid,
   .cta-gold {
     @apply w-full rounded-[18px] py-4 text-center text-[15px] font-extrabold text-white;
