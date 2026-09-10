@@ -10,8 +10,8 @@ interface TxRow {
   amount: number
   balance_after: number
   created_at: string
-  branch: { name: string } | null
-  device: { uid: string } | null
+  branches: { name: string } | null
+  devices: { uid: string } | null
 }
 
 const TX_LABEL: Record<string, string> = {
@@ -50,7 +50,7 @@ export default function Transactions() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('transactions')
-        .select('id, type, amount, balance_after, created_at, branch(name), device(uid)')
+        .select('id, type, amount, balance_after, created_at, branches(name), devices(uid)')
         .eq('event_id', eventId!)
         .order('created_at', { ascending: false })
         .limit(limit)
@@ -70,8 +70,8 @@ export default function Transactions() {
       TX_LABEL[t.type] ?? t.type,
       t.amount,
       t.balance_after,
-      t.branch?.name ?? '',
-      t.device?.uid ?? '',
+      t.branches?.name ?? '',
+      t.devices?.uid ?? '',
     ])
     const header = ['Fecha', 'Tipo', 'Monto', 'Saldo posterior', 'Sucursal', 'Dispositivo']
     const csv = [header.join(','), ...rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','))].join('\n')
@@ -152,8 +152,8 @@ export default function Transactions() {
                   })}
                 </td>
                 <td>{TX_LABEL[t.type] ?? t.type}</td>
-                <td>{t.branch?.name ?? '—'}</td>
-                <td className="font-mono text-xs">{t.device?.uid ?? '—'}</td>
+                <td>{t.branches?.name ?? '—'}</td>
+                <td className="font-mono text-xs">{t.devices?.uid ?? '—'}</td>
                 <td className="text-right font-mono text-xs">{formatMoney(t.amount)}</td>
                 <td className="text-right font-mono text-xs">{formatMoney(t.balance_after)}</td>
               </tr>

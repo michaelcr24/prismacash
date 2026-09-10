@@ -26,8 +26,8 @@ export default function DeviceDetailModal({
     type: string
     status: string
     assigned_at: string | null
-    wallet?: { balance: number } | null
-    attendee?: { full_name: string } | null
+    wallets?: { balance: number } | null
+    attendees?: { full_name: string } | null
   }
   onClose: () => void
 }) {
@@ -66,11 +66,11 @@ export default function DeviceDetailModal({
           </div>
           <div>
             <p className="cap text-ink-faint">Asistente</p>
-            <p className="font-semibold">{device.attendee?.full_name ?? '—'}</p>
+            <p className="font-semibold">{device.attendees?.full_name ?? '—'}</p>
           </div>
           <div>
             <p className="cap text-ink-faint">Saldo</p>
-            <p className="font-semibold">{formatMoney(device.wallet?.balance ?? 0)}</p>
+            <p className="font-semibold">{formatMoney(device.wallets?.balance ?? 0)}</p>
           </div>
         </div>
 

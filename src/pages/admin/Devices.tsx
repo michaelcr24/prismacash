@@ -14,8 +14,8 @@ interface DeviceRow {
   type: string
   status: string
   assigned_at: string | null
-  wallet: { balance: number } | null
-  attendee: { full_name: string } | null
+  wallets: { balance: number } | null
+  attendees: { full_name: string } | null
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -62,7 +62,7 @@ export default function Devices() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('devices')
-        .select('id, uid, type, status, assigned_at, wallet(balance), attendee(full_name)')
+        .select('id, uid, type, status, assigned_at, wallets(balance), attendees(full_name)')
         .eq('event_id', eventId!)
         .order('created_at', { ascending: false })
       if (error) throw error
@@ -136,12 +136,12 @@ export default function Devices() {
             {visible.map((d) => (
               <tr key={d.id} onClick={() => setDetail(d)} className="cursor-pointer">
                 <td className="font-mono text-xs">{d.uid}</td>
-                <td>{d.attendee?.full_name ?? '—'}</td>
+                <td>{d.attendees?.full_name ?? '—'}</td>
                 <td className="text-xs uppercase">{d.type}</td>
                 <td>
                   <span className={STATUS_PILL[d.status] ?? 'pill-mute'}>{STATUS_LABEL[d.status] ?? d.status}</span>
                 </td>
-                <td className="text-right font-mono text-xs">{formatMoney(d.wallet?.balance ?? 0)}</td>
+                <td className="text-right font-mono text-xs">{formatMoney(d.wallets?.balance ?? 0)}</td>
                 <td className="text-right">
                   <button
                     className="btn mr-2"
