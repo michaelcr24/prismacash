@@ -7,7 +7,7 @@
 - **BUILD_CMD**: `npm run build`
 - **LINT_CMD**: `npm run lint`
 - **WS**: worktree `C:\Users\mmaltes\Documents\Proyecto-events-management` (branch `feature/events-crud`)
-- **BASE**: `88ed952`
+- **BASE**: `5e124d4`
 
 ### Error Budget
 
