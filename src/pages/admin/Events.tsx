@@ -1,6 +1,8 @@
-import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
+import CreateEventModal from './events/CreateEventModal'
 
 interface EventRow {
   id: string
@@ -42,6 +44,8 @@ const DEVICE_LABEL: Record<string, string> = {
 }
 
 export default function Events() {
+  const [showCreate, setShowCreate] = useState(false)
+  const queryClient = useQueryClient()
   const { data: events, isPending } = useQuery({
     queryKey: ['admin-all-events'],
     queryFn: async () => {
@@ -61,7 +65,9 @@ export default function Events() {
         <h1 className="text-3xl font-extrabold tracking-wide">Eventos</h1>
         <div className="flex items-center gap-3">
           <span className="font-mono text-xs text-ink-faint">{events?.length ?? 0} eventos</span>
-          {/* "Nuevo evento" button added in Task 2 */}
+          <button className="cta-gold" onClick={() => setShowCreate(true)}>
+            Nuevo evento
+          </button>
         </div>
       </div>
 
@@ -117,6 +123,13 @@ export default function Events() {
           </tbody>
         </table>
       </div>
+
+      {showCreate && (
+        <CreateEventModal
+          onClose={() => setShowCreate(false)}
+          onCreated={() => queryClient.invalidateQueries({ queryKey: ['admin-all-events'] })}
+        />
+      )}
     </div>
   )
 }
