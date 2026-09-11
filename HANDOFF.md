@@ -1,6 +1,6 @@
 # PrismaCash — Estado del proyecto y continuación
 
-> Documento de traspaso. Última actualización: 2026-09-07.
+> Documento de traspaso. Última actualización: 2026-09-11.
 > El plan completo del producto está en [`PLAN-IMPLEMENTACION.md`](./PLAN-IMPLEMENTACION.md)
 > y su versión visual en [`PrismaCash-Plan.html`](./PrismaCash-Plan.html). Este archivo
 > es el estado de la **implementación**, no del plan.
@@ -87,9 +87,8 @@ Project Settings → API).
 - **Migración `0011_admin_read_and_realtime.sql`**: agrega políticas RLS de
   SELECT para que `event_admin` lea `profiles`/`branch_members`/`event_admins`
   de su propio evento, activa `transactions` en la publicación `supabase_realtime`
-  y setea `replica identity full`. **ESTA MIGRACIÓN NO ESTÁ APLICADA TODAVÍA**
-  (ver sección 3.) — el panel Staff no verá personal y el Realtime no funcionará
-  hasta aplicarla en el SQL Editor.
+  y setea `replica identity full`. **Aplicada en el proyecto real** (SQL Editor),
+  así que Staff ve el personal y el Realtime está activo en producción.
 - **Redirección post-login por rol**: `src/lib/sessionRole.ts` lee el rol del
   JWT (claims del auth hook) y `Login.tsx` manda a `/e/:slug/admin` para
   super_admin/event_admin, y a `/pos` o `/kiosk` para operator según los tipos
@@ -114,34 +113,52 @@ Project Settings → API).
   vista de solo lectura.
 - **Migración `0012_super_admin_branch_members.sql`**: política RLS
   `for all using (is_super_admin()) with check (is_super_admin())` sobre
-  `branch_members` (antes solo SELECT). **NO ESTÁ APLICADA TODAVÍA** — aplicar
-  por SQL Editor (ver sección 3).
+  `branch_members` (antes solo SELECT). **Aplicada en el proyecto real**
+  (SQL Editor).
 - Hallazgo clave: las Edge Functions `charge`/`topup` solo validan membresía de
   sucursal si el cliente envía `branch_id`, y ni POS ni Kiosk lo envían → el
   superadmin puede operar POS/Kiosk de verdad sin ser `branch_member`.
 - Los 6 commits (feature) están en `main` y pusheados; el worktree está limpio.
 
+### Sprint 4 (2026-09-08) — Gestión de usuarios (UI de Staff)
+
+- Spec: `docs/superpowers/specs/2026-09-08-user-management-design.md`; plan (14 tareas): `docs/superpowers/plans/2026-09-08-user-management.md`.
+- CRUD completo de usuarios **solo para `super_admin`**; `event_admin` solo lectura.
+- 4 Edge Functions nuevas (service role): `create-user` (alta manual, contraseña auto-generada que se muestra 1 vez), `invite-user` (invitación por email con rol), `update-user` (email/rol/contraseña; flujo atómico de 2 pasos: `409 {ok:false, error:'confirm_assignment_loss', assignments:[...]}` → el frontend reenvía con `confirm_loss:true`), `delete-user` (hard delete desde `auth.users` con cascada).
+- Guardas: nunca crear/editar/borrar `super_admin` desde la UI (403 `cannot_edit_super_admin` / `cannot_delete_super_admin`).
+- Migración `0013_staff_users_view.sql`: vista `staff_users` (id, org_id, email de auth.users, full_name, phone, role) con `security_invoker` y RLS.
+- Frontend: `src/pages/admin/staff/api.ts` (wrappers de invoke), `Modal.tsx`, `ConfirmDialog.tsx`, `CreateUserModal.tsx`, `InviteUserModal.tsx`, `EditUserModal.tsx`, `UserTable.tsx`, reescritura de `Staff.tsx` (tabs Todos/Admins/Operadores + búsqueda).
+- Rol solo `event_admin` / `operator`. Recuerda: **el JWT no refleja el rol nuevo hasta re-login** (consecuencia del diseño single-event-per-account de `0004`).
+
+### Sprint 4.5 (2026-09-10) — Admin CRUD: sucursales + dispositivos
+
+- Spec: `docs/superpowers/specs/2026-09-10-admin-crud-design.md`; plan (8 tareas): `docs/superpowers/plans/2026-09-10-admin-crud.md`.
+- Login: `super_admin` ahora cae en `/admin` (antes caía a `/kiosk`); guard de rol en `AdminLayout`.
+- CRUD directo vía `supabase.from()` con RLS (sin Edge Functions nuevas): `CreateBranchModal`, `EditBranchModal`, `ConfirmDeleteDialog`, `Branches.tsx` (con expandir terminales), `CreateDeviceModal` (crea device + wallet saldo 0), `EditDeviceModal`, `DeviceDetailModal` (feed últimas 10 txs), `Devices.tsx` (filtro por estado).
+- **Lección clave de embeds PostgREST** (validada contra la DB live): los embeds de FK usan el nombre de la **tabla referenciada en plural** — `profiles`, `branches`, `devices`, `wallets`, `attendees`, `terminals` — **NO** `profile`/`user`/`branch`/`device`/`wallet`/`attendee` (dan 400 PGRST200). La tabla de reembolsos es `refund_requests` (no `refunds`).
+
 ---
 
 ## 3. Pendientes activos
 
-- **Migración `0012` sin aplicar**: pegar
-  `supabase/migrations/0012_super_admin_branch_members.sql` en el SQL Editor del
-  dashboard. Hasta aplicarla, el formulario de "Asociar persona" fallará con error
-  RLS (`Branch assignment` denegado vía PostgREST).
-- **Verificación manual (Task 6 del plan)**: `supabase db push` o SQL Editor +
-  login como superadmin (sección "Pantallas operativas", vuelta "← Dashboard",
-  asignar/quitar en Personal) y como `event_admin` (que NO se vean esos controles).
-  Importante probar con **login fresco** tras asignar una persona: el JWT no se
-  refresca en mitad de sesión y los claims `event_role`/`event_id` se quedan
-  viejos hasta volver a entrar (consecuencia documentada del diseño
-  single-event-per-account de `0004`).
-- No hay bloqueador SQL ni de cámara. La migración `0011` (lectura de
-  staff para event_admin + publicación Realtime de `transactions`) ya está
-  aplicada en el proyecto real. La cámara en `/e/demo/kiosk` y `/e/demo/pos`
-  funciona con mensajes de error visibles si algo falla.
-- Lo que sigue son pruebas en vivo de los flujos (sección 5) — todo lo
-  restante es implementación nueva, no fixes.
+- **Smoke test `update-user`** (curl con token de `super_admin`): esperar
+  `409 {ok:false, error:'confirm_assignment_loss', assignments:[...]}` si el
+  usuario operator tiene sucursales asignadas, o `200 {ok:true}` si no pierde
+  nada. Requiere un usuario real con rol `operator` + `branch_members`.
+- **E2E manual super_admin** en browser: login → `/admin`; `/e/demo/admin/branches`
+  crear/editar/eliminar/expandir terminales; `/e/demo/admin/devices`
+  crear/editar/eliminar/filtro/detalle; `/e/demo/admin/staff`
+  crear/invitar/editar/eliminar (sin regresión). De paso probar
+  `/transactions`, `/dashboard`, `/refunds` (estos tenían el bug de embeds,
+  ya corregido). **Probar con login fresco**: el JWT no refleja el rol nuevo
+  hasta volver a entrar.
+- **E2E manual `event_admin`**: confirmar que Staff carga de solo lectura sin
+  botones de gestión.
+- Las migraciones `0011`, `0012`, `0013` están aplicadas en el proyecto real;
+  las 4 Edge Functions de gestión de usuarios (`create-user`, `invite-user`,
+  `update-user`, `delete-user`) están desplegadas en el Dashboard.
+- La cámara en `/e/demo/kiosk` y `/e/demo/pos` funciona con mensajes de error
+  visibles si algo falla.
 
 ---
 
@@ -195,29 +212,15 @@ continúe entienda por qué existen ciertas líneas "raras" en el SQL:
 
 ## 5. Pendiente (en orden de prioridad)
 
-1. Probar el flujo completo real: `issue-device` desde el quiosco (crear
-   dispositivo + recarga inicial) y luego `charge` desde el POS con ese mismo
-   `device_uid`, confirmando que el saldo baja correctamente. También probar
-   `block-and-replace` en el quiosco (bloquear + migrar saldo a un dispositivo
-   nuevo).
-2. Probar en vivo el Dashboard: entrar a `/e/demo/admin/dashboard` con el user
-   `super_admin` y confirmar KPIs + gráfica + Realtime (la migración 0011 ya
-   está aplicada, así que los INSERTs deben aparecer en vivo) y que Staff
-   muestra el personal del evento.
-3. CRUD de sucursales/staff/dispositivos para `event_admin` — hoy las vistas
-   admin son de solo lectura por decisión de producto (solo `super_admin`
-   edita). Retomar cuando se quiera que el admin del evento administre.
-4. ~~Inicializar git + repo remoto~~ — hecho: `github.com/michaelcr24/prismacash`,
-   rama `main`, pusheado.
-5. **Alta de usuarios y asignación de roles desde la UI (pendiente)** — NO
-   existe ningún mantenimiento para crear usuarios ni asignar roles (ni el rol
-   `super_admin`). Hoy los usuarios/roles se crean a mano (SQL Editor /
-   dashboard de Supabase). Falta una pantalla de gestión (e.g. en el admin:
-   registrar `auth.users` + `profiles.role` + `event_admins`/`branch_members`),
-   con las políticas RLS / función de admin correspondientes.
-6. **App móvil nativa (pendiente)** — Fase 2 del plan: app Expo, recarga
-   online (Stripe/Mercado Pago/institución bancaria — ya documentado en el
-   plan), modo offline.
+1. **Smoke test + E2E manual** (ver sección 3): curl `update-user` + pruebas
+   de browser para super_admin y event_admin.
+2. Pruebas en vivo de los flujos transaccionales del Sprint 3: flujo real
+   quiosco→POS (`issue-device`, `charge`, `block-and-replace`) y Dashboard
+   live (KPIs + Realtime).
+3. **App móvil nativa (pendiente)** — Fase 2 del plan: app Expo, recarga
+   online (Stripe — documentado en spec/plan de 2026-09-10), modo offline.
+   En pausa por decisión de producto; spec y plan de 16 tareas commiteados
+   en `main`.
 
 ---
 
@@ -227,10 +230,12 @@ continúe entienda por qué existen ciertas líneas "raras" en el SQL:
 PLAN-IMPLEMENTACION.md     plan maestro completo (markdown)
 PrismaCash-Plan.html       mismo plan, versión visual/interactiva
 HANDOFF.md                 este archivo
+docs/superpowers/           specs/ y plans/ de cada feature (workflow superpowers)
 supabase/
-  migrations/0001-0012     correr en orden — 0010 topup, 0011 aplicada, 0012 pendiente de aplicar
+  migrations/0001-0013     correr en orden — 0013 (vista staff_users) aplicada en el proyecto real
   seed.sql                 datos de prueba (evento "demo")
-  functions/                charge · issue-device · block-and-replace · topup · _shared/
+  functions/                charge · topup · issue-device · block-and-replace ·
+                            create-user · invite-user · update-user · delete-user · _shared/{admin,cors,users}.ts
 src/
   lib/supabase.ts           cliente de Supabase
   lib/auth.tsx + auth-context.ts   sesión + hook useAuth()
@@ -239,7 +244,8 @@ src/
   hooks/useEvent.ts          evento actual por slug (RLS-aware)
   hooks/useSessionRole.ts    rol de sesión (super_admin/event_admin/operator) — navegación superadmin
   components/DeviceScanner.tsx    NFC (Web NFC) / QR (cámara)
-  pages/Login.tsx, Kiosk.tsx, Pos.tsx, admin/*
+  pages/Login.tsx, Kiosk.tsx, Pos.tsx, admin/*   (AdminLayout, Dashboard, Branches,
+                            Devices, Staff, Transactions, Refunds + modales en branches/, devices/, staff/)
 ```
 ```
 
@@ -254,11 +260,16 @@ supabase functions deploy charge
 supabase functions deploy issue-device
 supabase functions deploy block-and-replace
 supabase functions deploy topup
+supabase functions deploy create-user
+supabase functions deploy invite-user
+supabase functions deploy update-user
+supabase functions deploy delete-user
 ```
 
 Nota: el proyecto real (`lhvqpymbgkjyfdcryhzp`) no está linkeado al CLI de esta
-máquina (otra cuenta). Las migraciones que no sean reclamos de Edge Functions
-se aplican pegando el SQL en el SQL Editor del dashboard.
+máquina (otra cuenta). Las migraciones se aplican pegando el SQL en el SQL Editor
+del dashboard; las Edge Functions se despliegan desde el Dashboard subiendo la
+carpeta `supabase/functions/` completa (incluye `_shared/`).
 
 Auth Hook (paso manual, no se puede hacer por SQL): Dashboard → Authentication
 → Hooks → "Customize Access Token (JWT) Claims" → Postgres Function →

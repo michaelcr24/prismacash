@@ -1,7 +1,11 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useEvent } from '../../hooks/useEvent'
 import { supabase } from '../../lib/supabase'
+import CreateBranchModal from './branches/CreateBranchModal'
+import EditBranchModal from './branches/EditBranchModal'
+import ConfirmDeleteDialog from './branches/ConfirmDeleteDialog'
 
 interface BranchRow {
   id: string
@@ -22,12 +26,16 @@ function branchPill(active: boolean): string {
   return active ? 'pill pill-ok' : 'pill pill-mute'
 }
 
-/** Lista de sucursales y sus terminales (lectura). La edición es de
- *  super_admin por ahora. */
 export default function Branches() {
   const { eventSlug } = useParams()
   const { data: event } = useEvent(eventSlug)
   const eventId = event?.id
+  const queryClient = useQueryClient()
+
+  const [creating, setCreating] = useState(false)
+  const [editing, setEditing] = useState<BranchRow | null>(null)
+  const [deleting, setDeleting] = useState<BranchRow | null>(null)
+  const [expanded, setExpanded] = useState<string | null>(null)
 
   const { data: branches, isPending } = useQuery({
     queryKey: ['admin-branches', eventId],
@@ -43,40 +51,114 @@ export default function Branches() {
     },
   })
 
+  function refresh() {
+    queryClient.invalidateQueries({ queryKey: ['admin-branches', eventId] })
+  }
+
   return (
     <div>
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h1 className="text-3xl font-extrabold tracking-wide">Sucursales y terminales</h1>
-        <span className="font-mono text-xs text-ink-faint">{branches?.length ?? 0} sucursales</span>
+        <h1 className="text-3xl font-extrabold tracking-wide">Sucursales</h1>
+        <div className="flex items-center gap-3">
+          <span className="font-mono text-xs text-ink-faint">{branches?.length ?? 0} sucursales</span>
+          <button className="cta-gold" onClick={() => setCreating(true)}>
+            Nueva sucursal
+          </button>
+        </div>
       </div>
 
-      <div className="mt-5 flex flex-col gap-3">
-        {isPending && <p className="text-sm text-ink-faint">Cargando…</p>}
-        {!isPending && branches?.length === 0 && <p className="text-sm text-ink-faint">Sin sucursales en este evento.</p>}
-        {branches?.map((b) => (
-          <div key={b.id} className="card p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="font-semibold">{b.name}</p>
-                <p className="text-xs text-ink-soft">{TYPE_LABEL[b.type] ?? b.type}</p>
-              </div>
-              <span className={branchPill(b.is_active)}>{b.is_active ? 'Activa' : 'Inactiva'}</span>
-            </div>
-            {b.terminals.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {b.terminals.map((t) => (
-                  <span
-                    key={t.id}
-                    className={`chip ${t.is_active ? '' : 'opacity-50'}`}
-                  >
-                    {t.device_label}
-                  </span>
-                ))}
-              </div>
+      <div className="table-card mt-5">
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Tipo</th>
+              <th>Estado</th>
+              <th>Terminales</th>
+              <th className="text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {isPending && (
+              <tr>
+                <td colSpan={5} className="text-ink-faint">Cargando…</td>
+              </tr>
             )}
-          </div>
-        ))}
+            {!isPending && branches?.length === 0 && (
+              <tr>
+                <td colSpan={5} className="text-ink-faint">
+                  Sin sucursales en este evento. Crea la primera.
+                </td>
+              </tr>
+            )}
+            {branches?.map((b) => (
+              <>
+                <tr key={b.id} onClick={() => setExpanded(expanded === b.id ? null : b.id)} className="cursor-pointer">
+                  <td className="font-semibold">{b.name}</td>
+                  <td>{TYPE_LABEL[b.type] ?? b.type}</td>
+                  <td>
+                    <span className={branchPill(b.is_active)}>{b.is_active ? 'Activa' : 'Inactiva'}</span>
+                  </td>
+                  <td className="font-mono text-xs">{b.terminals.length}</td>
+                  <td className="text-right">
+                    <button
+                      className="btn mr-2"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setEditing(b)
+                      }}
+                    >
+                      Editar
+                    </button>
+                    <button
+                      className="btn"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDeleting(b)
+                      }}
+                    >
+                      Eliminar
+                    </button>
+                  </td>
+                </tr>
+                {expanded === b.id && (
+                  <tr key={`${b.id}-terminals`}>
+                    <td colSpan={5}>
+                      <div className="px-3 py-2">
+                        {b.terminals.length === 0 && (
+                          <p className="text-sm text-ink-faint">Sin terminales vinculadas.</p>
+                        )}
+                        <div className="flex flex-wrap gap-2">
+                          {b.terminals.map((t) => (
+                            <span key={t.id} className={`chip ${t.is_active ? '' : 'opacity-50'}`}>
+                              {t.device_label}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </>
+            ))}
+          </tbody>
+        </table>
       </div>
+
+      {creating && eventId && (
+        <CreateBranchModal eventId={eventId} onCreated={refresh} onClose={() => setCreating(false)} />
+      )}
+      {editing && (
+        <EditBranchModal branch={editing} onUpdated={refresh} onClose={() => setEditing(null)} />
+      )}
+      {deleting && (
+        <ConfirmDeleteDialog
+          branch={deleting}
+          terminalCount={deleting.terminals.length}
+          onDeleted={refresh}
+          onClose={() => setDeleting(null)}
+        />
+      )}
     </div>
   )
 }

@@ -22,7 +22,7 @@ interface TxRow {
   amount: number
   balance_after: number
   created_at: string
-  branch: { name: string } | null
+  branches: { name: string } | null
 }
 
 const TX_PILL: Record<string, { label: string; cls: string }> = {
@@ -75,7 +75,7 @@ export default function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('transactions')
-        .select('id, event_id, branch_id, device_id, type, amount, balance_after, created_at, branch(name)')
+        .select('id, event_id, branch_id, device_id, type, amount, balance_after, created_at, branches(name)')
         .eq('event_id', eventId!)
         .order('created_at', { ascending: false })
         .limit(500)
@@ -236,7 +236,7 @@ export default function Dashboard() {
               return (
                 <div key={t.id} className="feed-row">
                   <span className={meta.cls}>{meta.label}</span>
-                  <span className="truncate text-ink-soft">{t.branch?.name ?? '—'}</span>
+                  <span className="truncate text-ink-soft">{t.branches?.name ?? '—'}</span>
                   <span className={`amt ${inflow ? 'pos' : 'neg'}`}>
                     {inflow ? '+' : '-'}
                     {formatMoney(Math.abs(t.amount), currency)}

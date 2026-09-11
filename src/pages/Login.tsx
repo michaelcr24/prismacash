@@ -44,8 +44,20 @@ export default function Login() {
 
     // El auth hook ya metió los claims (event_role, event_id) en el JWT.
     const claims = readClaims(authData.session)
-    const role: SessionRole = claims?.role ?? null
+    let role: SessionRole = claims?.role ?? null
     let eventId = claims?.eventId ?? null
+
+    if (!role) {
+      // Fallback: si el access token no trae claims (hook no configurado o
+      // sesión vieja), resolvemos el rol desde la tabla profiles.
+      const userId = authData.session.user.id
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, org_id')
+        .eq('id', userId)
+        .maybeSingle()
+      role = profile?.role ?? null
+    }
 
     if (!eventId) {
       // Fallback: super_admin no tiene evento asignado en el JWT; lo
@@ -69,8 +81,10 @@ export default function Login() {
 
     setLoading(false)
 
-    // TODO(sprint 3): operator sin sucursal asignada (o sin event_id) no
-    // debería poder entrar a kiosk/pos sin una terminal — validar aquí.
+    if (role === 'super_admin' && !eventId) {
+      setError('No se pudo resolver el evento. Verifica el slug.')
+      return
+    }
     navigate(homePathForRole(role, eventSlug, branchTypes))
   }
 

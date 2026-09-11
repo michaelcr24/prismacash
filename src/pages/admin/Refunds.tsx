@@ -8,7 +8,7 @@ interface RefundRow {
   amount: number
   status: string
   created_at: string
-  device: { uid: string; attendee: { full_name: string } | null } | null
+  devices: { uid: string; attendees: { full_name: string } | null } | null
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -42,7 +42,7 @@ export default function Refunds() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('refund_requests')
-        .select('id, amount, status, created_at, device(uid, attendee(full_name))')
+        .select('id, amount, status, created_at, devices(uid, attendees(full_name))')
         .in(
           'device_id',
           (await supabase.from('devices').select('id').eq('event_id', eventId!)).data?.map((d) => d.id) ?? [],
@@ -68,8 +68,8 @@ export default function Refunds() {
             <div>
               <p className="font-mono text-sm font-semibold">{formatMoney(r.amount)}</p>
               <p className="text-xs text-ink-soft">
-                {r.device?.attendee?.full_name ?? 'Asistente desconocido'} ·{' '}
-                <span className="font-mono">{r.device?.uid ?? '—'}</span>
+                {r.devices?.attendees?.full_name ?? 'Asistente desconocido'} ·{' '}
+                <span className="font-mono">{r.devices?.uid ?? '—'}</span>
               </p>
               <p className="text-xs text-ink-faint">
                 {new Date(r.created_at).toLocaleString('es-CR', { dateStyle: 'short', timeStyle: 'short' })}
