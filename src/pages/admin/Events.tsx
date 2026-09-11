@@ -3,6 +3,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import CreateEventModal from './events/CreateEventModal'
+import EditEventModal from './events/EditEventModal'
+import ConfirmDeleteEventDialog from './events/ConfirmDeleteEventDialog'
 
 interface EventRow {
   id: string
@@ -45,6 +47,8 @@ const DEVICE_LABEL: Record<string, string> = {
 
 export default function Events() {
   const [showCreate, setShowCreate] = useState(false)
+  const [editingEvent, setEditingEvent] = useState<EventRow | null>(null)
+  const [deletingEvent, setDeletingEvent] = useState<{ id: string; name: string } | null>(null)
   const queryClient = useQueryClient()
   const { data: events, isPending } = useQuery({
     queryKey: ['admin-all-events'],
@@ -115,8 +119,8 @@ export default function Events() {
                   <Link className="btn mr-2" to={`/e/${ev.slug}/admin/dashboard`}>
                     Abrir
                   </Link>
-                  <button className="btn mr-2">Editar</button>
-                  <button className="btn">Eliminar</button>
+                  <button className="btn mr-2" onClick={() => setEditingEvent(ev)}>Editar</button>
+                  <button className="btn" onClick={() => setDeletingEvent({ id: ev.id, name: ev.name })}>Eliminar</button>
                 </td>
               </tr>
             ))}
@@ -128,6 +132,21 @@ export default function Events() {
         <CreateEventModal
           onClose={() => setShowCreate(false)}
           onCreated={() => queryClient.invalidateQueries({ queryKey: ['admin-all-events'] })}
+        />
+      )}
+      {editingEvent && (
+        <EditEventModal
+          event={editingEvent}
+          onClose={() => setEditingEvent(null)}
+          onSaved={() => queryClient.invalidateQueries({ queryKey: ['admin-all-events'] })}
+        />
+      )}
+      {deletingEvent && (
+        <ConfirmDeleteEventDialog
+          eventId={deletingEvent.id}
+          eventName={deletingEvent.name}
+          onClose={() => setDeletingEvent(null)}
+          onDeleted={() => queryClient.invalidateQueries({ queryKey: ['admin-all-events'] })}
         />
       )}
     </div>
