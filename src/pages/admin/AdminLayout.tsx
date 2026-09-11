@@ -3,11 +3,12 @@ import { useSessionRole } from '../../hooks/useSessionRole'
 
 const NAV = [
   { to: 'dashboard', n: '01', label: 'Dashboard' },
-  { to: 'branches', n: '02', label: 'Sucursales' },
-  { to: 'staff', n: '03', label: 'Personal' },
-  { to: 'devices', n: '04', label: 'Dispositivos' },
-  { to: 'transactions', n: '05', label: 'Transacciones' },
-  { to: 'refunds', n: '06', label: 'Reembolsos' },
+  { to: 'events', n: '02', label: 'Eventos', superOnly: true },
+  { to: 'branches', n: '03', label: 'Sucursales' },
+  { to: 'staff', n: '04', label: 'Personal' },
+  { to: 'devices', n: '05', label: 'Dispositivos' },
+  { to: 'transactions', n: '06', label: 'Transacciones' },
+  { to: 'refunds', n: '07', label: 'Reembolsos' },
 ]
 
 export default function AdminLayout() {
@@ -33,7 +34,7 @@ export default function AdminLayout() {
             <p className="font-extrabold text-violet">{eventSlug}</p>
           </div>
         </div>
-        {NAV.map((item) => (
+        {NAV.filter((item) => !item.superOnly || role === 'super_admin').map((item) => (
           <NavLink key={item.to} to={item.to} className="navlink">
             <span className="n">{item.n}</span>
             {item.label}

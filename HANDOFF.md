@@ -137,6 +137,18 @@ Project Settings → API).
 - CRUD directo vía `supabase.from()` con RLS (sin Edge Functions nuevas): `CreateBranchModal`, `EditBranchModal`, `ConfirmDeleteDialog`, `Branches.tsx` (con expandir terminales), `CreateDeviceModal` (crea device + wallet saldo 0), `EditDeviceModal`, `DeviceDetailModal` (feed últimas 10 txs), `Devices.tsx` (filtro por estado).
 - **Lección clave de embeds PostgREST** (validada contra la DB live): los embeds de FK usan el nombre de la **tabla referenciada en plural** — `profiles`, `branches`, `devices`, `wallets`, `attendees`, `terminals` — **NO** `profile`/`user`/`branch`/`device`/`wallet`/`attendee` (dan 400 PGRST200). La tabla de reembolsos es `refund_requests` (no `refunds`).
 
+### Sprint 4.10 (2026-09-11) — Admin CRUD: eventos
+
+- **Spec/Plan**: `docs/superpowers/specs/2026-09-11-events-management-design.md` y `docs/superpowers/plans/2026-09-11-events-management.md`.
+- Super_admin ahora tiene CRUD completo de eventos desde `/e/:eventSlug/admin/events` (nav item visible solo para `super_admin`).
+- Página global: lista todos los eventos con organización, estado, dispositivo, moneda y fechas (`Events.tsx`, query `admin-all-events`).
+- Modal de creación (`events/CreateEventModal.tsx`) con selector de organización (requerido), nombre, slug auto-generado (se congela tras tocar el campo), estado, tipo dispositivo, moneda, colores de marca.
+- Modal de edición (`events/EditEventModal.tsx`) con los mismos campos pre-cargados. Manejo de error `23505` (slug duplicado).
+- Diálogo de eliminación (`events/ConfirmDeleteEventDialog.tsx`) con advertencia de cascada (branches/devices/wallets/transactions se borran en cascada) vía `ConfirmDialog` (`message`/`items`/`danger`/`busy`).
+- Acción "Abrir" navega a `/e/{slug}/admin/dashboard` para entrar al admin de ese evento.
+- **Ojo con el embed `organizations!inner(name)`**: los tipos de Supabase lo modelan como array mientras PostgREST devuelve objeto en runtime (FK to-one); `Events.tsx` maneja ambas cardinalidades (`orgName()` helper) para no romper en ninguno de los dos casos.
+- Patrón: `supabase.from()` directo con RLS (`super_admin_all_events`), sin Edge Functions nuevas.
+
 ---
 
 ## 3. Pendientes activos
@@ -154,6 +166,12 @@ Project Settings → API).
   hasta volver a entrar.
 - **E2E manual `event_admin`**: confirmar que Staff carga de solo lectura sin
   botones de gestión.
+- **E2E manual eventos (super_admin)**: `/e/demo/admin/events` → crear evento
+  (probar slug duplicado → muestra error), editar, eliminar (ver advertencia de
+  cascada); confirmar que `event_admin` NO ve el nav item "Eventos" y que
+  accediendo directo a la URL solo ve eventos de su org (RLS), no los de otras.
+  Confirmar también en browser que la columna "Organización" muestra el nombre
+  (no `—`) — valida el embed `organizations!inner(name)` en runtime.
 - Las migraciones `0011`, `0012`, `0013` están aplicadas en el proyecto real;
   las 4 Edge Functions de gestión de usuarios (`create-user`, `invite-user`,
   `update-user`, `delete-user`) están desplegadas en el Dashboard.

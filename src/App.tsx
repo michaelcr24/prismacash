@@ -7,6 +7,7 @@ import { useAuth } from './lib/auth-context'
 
 const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'))
 const Branches = lazy(() => import('./pages/admin/Branches'))
+const Events = lazy(() => import('./pages/admin/Events'))
 const Dashboard = lazy(() => import('./pages/admin/Dashboard'))
 const Devices = lazy(() => import('./pages/admin/Devices'))
 const Refunds = lazy(() => import('./pages/admin/Refunds'))
@@ -69,6 +70,7 @@ export default function App() {
               <Route path="devices" element={<Devices />} />
               <Route path="transactions" element={<Transactions />} />
               <Route path="refunds" element={<Refunds />} />
+              <Route path="events" element={<Events />} />
             </Route>
           </Routes>
         </Suspense>

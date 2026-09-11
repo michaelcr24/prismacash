@@ -27,7 +27,7 @@
 
 - TypeScript strict mode (`tsc -b` must pass).
 - No react-hook-form or zod — use controlled inputs with `useState`.
-- Style: Tailwind 4 utility classes; follow existing modal patterns (see `src/pages/admin/staff/Modal.tsx`, `branches/CreateBranchModal.tsx`).
+- Style: match existing admin pages — use the repo's CSS classes (`.field`, `.input`, `.btn`, `.cta-solid`, `.cta-gold`, `.cta-coral`, `.text-rust`, `.text-ink-faint`, `.pill`, `.table-card`, `.chip`) driven by the Tailwind design tokens. Follow the exact patterns in `src/pages/admin/branches/CreateBranchModal.tsx`, `branches/EditBranchModal.tsx`, `branches/ConfirmDeleteDialog.tsx`, `branches/Branches.tsx`, `staff/Modal.tsx`, `staff/ConfirmDialog.tsx`. Do NOT use raw Tailwind utility-only styling (e.g. `bg-red-50 text-red-700 rounded`) where a repo class exists.
 - Embed pattern for org name: `.from('events').select('*, organizations!inner(name)')` — the FK name is `organizations` (plural), confirmed by PostgREST embed lesson.
 - Postgres unique constraint on `events.slug` → handle error gracefully (show message).
 - `events.org_id` is NOT NULL → org selector is required.
@@ -65,23 +65,34 @@ import Events from './pages/admin/Events';
 
 - [ ] **Step 2: Add "Eventos" nav item to AdminLayout, gated to super_admin**
 
-In `src/pages/admin/AdminLayout.tsx`, add a new entry to the NAV array *and* gate it:
+The NAV array uses `{ to, n, label }` where `n` is the badge number. Add an optional `superOnly?: true` flag to the events entry and filter before rendering:
 
 ```tsx
-// src/pages/admin/AdminLayout.tsx — add to NAV array
-{ path: 'events', label: 'Eventos' },
+// src/pages/admin/AdminLayout.tsx — NAV array (insert after dashboard entry)
+const NAV = [
+  { to: 'dashboard', n: '01', label: 'Dashboard' },
+  { to: 'events', n: '02', label: 'Eventos', superOnly: true },
+  { to: 'branches', n: '03', label: 'Sucursales' },
+  { to: 'staff', n: '04', label: 'Personal' },
+  { to: 'devices', n: '05', label: 'Dispositivos' },
+  { to: 'transactions', n: '06', label: 'Transacciones' },
+  { to: 'refunds', n: '07', label: 'Reembolsos' },
+]
 ```
 
-Then, in the sidebar rendering, filter NAV items: only show "Eventos" if `role === 'super_admin'`:
+Filter in the render loop before mapping:
 
 ```tsx
-// AdminLayout.tsx — NAV item rendering: add a guard
-{(item.path === 'events' ? role === 'super_admin' : true) && (
-  <NavLink ...>...</NavLink>
-)}
+// AdminLayout.tsx — replace `{NAV.map((item) => (` with:
+{NAV.filter((item) => !item.superOnly || role === 'super_admin').map((item) => (
+  <NavLink key={item.to} to={item.to} className="navlink">
+    <span className="n">{item.n}</span>
+    {item.label}
+  </NavLink>
+))}
 ```
 
-Alternatively, restructure NAV to include an optional `superAdminOnly?: boolean` field and filter in the render loop. Whichever is cleaner with the existing pattern.
+The existing `{role === 'super_admin' && (...) // Pantallas operativas}` block is untouched.
 
 - [ ] **Step 3: Create skeleton `src/pages/admin/Events.tsx`**
 
@@ -89,81 +100,116 @@ Create the file with a minimal skeleton that loads events and renders a table:
 
 ```tsx
 // src/pages/admin/Events.tsx
-import { useQuery } from '@tanstack/query-core';
-import { useEvent } from '../../hooks/useEvent';
-import { supabase } from '../../lib/supabase';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { supabase } from '../../lib/supabase';
+
+interface EventRow {
+  id: string;
+  org_id: string;
+  name: string;
+  slug: string;
+  status: string;
+  device_type: string;
+  currency: string;
+  brand_primary: string;
+  brand_secondary: string;
+  starts_at: string | null;
+  ends_at: string | null;
+  organizations: { name: string } | null;
+}
+
+const STATUS_LABEL: Record<string, string> = {
+  draft: 'Borrador',
+  active: 'Activo',
+  closed: 'Cerrado',
+};
+
+function statusPill(status: string): string {
+  if (status === 'active') return 'pill pill-ok';
+  if (status === 'draft') return 'pill pill-warn';
+  return 'pill pill-mute';
+}
+
+const DEVICE_LABEL: Record<string, string> = {
+  nfc: 'NFC',
+  qr: 'QR',
+  hybrid: 'Híbrido',
+};
 
 export default function Events() {
-  const { data: events, isLoading, error } = useQuery({
+  const { data: events, isPending } = useQuery({
     queryKey: ['admin-all-events'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('events')
-        .select('id, name, slug, status, device_type, currency, brand_primary, brand_secondary, starts_at, ends_at, org_id, organizations!inner(name)')
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data;
+        .select('id, org_id, name, slug, status, device_type, currency, brand_primary, brand_secondary, starts_at, ends_at, organizations!inner(name)')
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      if (!data) return []
+      return data as EventRow[]
     },
-  });
-
-  if (isLoading) return <div className="p-8 text-center text-gray-500">Cargando eventos...</div>;
-  if (error) return <div className="p-8 text-center text-red-600">Error al cargar eventos.</div>;
+  })
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Eventos</h1>
-        {/* Button added in Task 2 */}
+    <div>
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h1 className="text-3xl font-extrabold tracking-wide">Eventos</h1>
+        <div className="flex items-center gap-3">
+          <span className="font-mono text-xs text-ink-faint">{events?.length ?? 0} eventos</span>
+          {/* "Nuevo evento" button added in Task 2 */}
+        </div>
       </div>
 
-      <div className="overflow-x-auto bg-white rounded-lg shadow">
-        <table className="min-w-full divide-y divide-gray-200 text-sm">
-          <thead className="bg-gray-50">
+      <div className="table-card mt-5">
+        <table>
+          <thead>
             <tr>
-              <th className="px-4 py-3 text-left font-medium text-gray-500">Nombre</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-500">Slug</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-500">Estado</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-500">Tipo dispositivo</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-500">Moneda</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-500">Organización</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-500">Inicio</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-500">Cierre</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">Acciones</th>
+              <th>Nombre</th>
+              <th>Slug</th>
+              <th>Estado</th>
+              <th>Dispositivo</th>
+              <th>Moneda</th>
+              <th>Organización</th>
+              <th>Inicio</th>
+              <th>Cierre</th>
+              <th className="text-right">Acciones</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
-            {events?.map((ev) => (
-              <tr key={ev.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3 font-medium">{ev.name}</td>
-                <td className="px-4 py-3 text-gray-600">{ev.slug}</td>
-                <td className="px-4 py-3">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    ev.status === 'active' ? 'bg-green-100 text-green-800' :
-                    ev.status === 'draft' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {ev.status}
-                  </span>
+          <tbody>
+            {isPending && (
+              <tr>
+                <td colSpan={9} className="text-ink-faint">Cargando…</td>
+              </tr>
+            )}
+            {!isPending && events?.length === 0 && (
+              <tr>
+                <td colSpan={9} className="text-ink-faint">
+                  No hay eventos. Crea el primero.
                 </td>
-                <td className="px-4 py-3 text-gray-600">{ev.device_type}</td>
-                <td className="px-4 py-3 text-gray-600">{ev.currency}</td>
-                <td className="px-4 py-3 text-gray-600">{(ev.organizations as any)?.name ?? '—'}</td>
-                <td className="px-4 py-3 text-gray-600">{ev.starts_at ? new Date(ev.starts_at).toLocaleDateString() : '—'}</td>
-                <td className="px-4 py-3 text-gray-600">{ev.ends_at ? new Date(ev.ends_at).toLocaleDateString() : '—'}</td>
-                <td className="px-4 py-3 text-right space-x-2">
-                  <Link
-                    to={`/e/${ev.slug}/admin/dashboard`}
-                    className="text-blue-600 hover:underline text-xs"
-                  >
+              </tr>
+            )}
+            {events?.map((ev) => (
+              <tr key={ev.id}>
+                <td className="font-semibold">{ev.name}</td>
+                <td className="font-mono text-xs">{ev.slug}</td>
+                <td>
+                  <span className={statusPill(ev.status)}>{STATUS_LABEL[ev.status] ?? ev.status}</span>
+                </td>
+                <td>{DEVICE_LABEL[ev.device_type] ?? ev.device_type}</td>
+                <td className="font-mono text-xs">{ev.currency}</td>
+                <td>{ev.organizations?.name ?? '—'}</td>
+                <td className="text-xs">{ev.starts_at ? new Date(ev.starts_at).toLocaleDateString() : '—'}</td>
+                <td className="text-xs">{ev.ends_at ? new Date(ev.ends_at).toLocaleDateString() : '—'}</td>
+                <td className="text-right whitespace-nowrap">
+                  <Link className="btn mr-2" to={`/e/${ev.slug}/admin/dashboard`}>
                     Abrir
                   </Link>
+                  <button className="btn mr-2">Editar</button>
+                  <button className="btn">Eliminar</button>
                 </td>
               </tr>
             ))}
-            {events?.length === 0 && (
-              <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-500">No hay eventos.</td></tr>
-            )}
           </tbody>
         </table>
       </div>
@@ -202,6 +248,8 @@ Follow the same pattern as `branches/CreateBranchModal.tsx`. Include org selecto
 
 ```tsx
 // src/pages/admin/events/CreateEventModal.tsx
+// STYLING: follow branches/CreateBranchModal.tsx exactly — use .field, .input,
+// .btn, .cta-solid, .text-rust classes (NOT raw Tailwind utility classes).
 import { useEffect, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
 import Modal from '../staff/Modal';
@@ -220,6 +268,18 @@ function slugify(text: string): string {
     .replace(/(^-|-$)/g, '');
 }
 
+const STATUSES = [
+  { value: 'draft', label: 'Borrador' },
+  { value: 'active', label: 'Activo' },
+  { value: 'closed', label: 'Cerrado' },
+] as const;
+
+const DEVICE_TYPES = [
+  { value: 'qr', label: 'QR' },
+  { value: 'nfc', label: 'NFC' },
+  { value: 'hybrid', label: 'Híbrido' },
+] as const;
+
 export default function CreateEventModal({ onClose, onCreated }: Props) {
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [orgId, setOrgId] = useState('');
@@ -231,8 +291,8 @@ export default function CreateEventModal({ onClose, onCreated }: Props) {
   const [currency, setCurrency] = useState('CRC');
   const [brandPrimary, setBrandPrimary] = useState('#B5691A');
   const [brandSecondary, setBrandSecondary] = useState('#187A5D');
-  const [error, setError] = useState('');
-  const [saving, setSaving] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.from('organizations').select('id, name, slug')
@@ -246,17 +306,20 @@ export default function CreateEventModal({ onClose, onCreated }: Props) {
 
   useEffect(() => {
     if (!slugTouched) setSlug(slugify(name));
-  }, [name, slugTouched]);
+  }, [name, slugTouched]); // LINT NOTE: eslint react-hooks/set-state-in-effect flags this —
+  // move slug auto-gen into the name input's onChange instead:
+  //   onChange={(e) => { setName(v); if (!slugTouched) setSlug(slugify(v)); }}
+  // The EditEventModal below doesn't use slugify so is lint-clean as-is.
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!orgId || !name.trim() || !slug.trim()) {
       setError('Organización, nombre y slug son requeridos.');
       return;
     }
-    setSaving(true);
-    setError('');
-    const { error: insertErr } = await supabase.from('events').insert({
+    setBusy(true);
+    setError(null);
+    const { error: insertError } = await supabase.from('events').insert({
       org_id: orgId,
       name: name.trim(),
       slug: slug.trim(),
@@ -266,128 +329,84 @@ export default function CreateEventModal({ onClose, onCreated }: Props) {
       brand_primary: brandPrimary,
       brand_secondary: brandSecondary,
     });
-    setSaving(false);
-    if (insertErr) {
-      if (insertErr.code === '23505') {
+    setBusy(false);
+    if (insertError) {
+      if (insertError.code === '23505') {
         setError('Ya existe un evento con ese slug. Elige otro.');
       } else {
-        setError(insertErr.message);
+        setError(insertError.message);
       }
       return;
     }
     onCreated();
     onClose();
-  };
+  }
 
   return (
     <Modal title="Crear evento" onClose={onClose}>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {error && <div className="bg-red-50 text-red-700 text-sm p-3 rounded">{error}</div>}
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Organización *</label>
-          <select
-            value={orgId}
-            onChange={(e) => setOrgId(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
-          >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div className="field">
+          <label>Organización *</label>
+          <select className="input" value={orgId} onChange={(e) => setOrgId(e.target.value)}>
             <option value="">Seleccionar organización...</option>
             {orgs.map((o) => (
               <option key={o.id} value={o.id}>{o.name}</option>
             ))}
           </select>
         </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Ej: Feria del Sol"
-          />
+        <div className="field">
+          <label>Nombre *</label>
+          <input className="input" value={name} onChange={(e) => setName(e.target.value)} required placeholder="Ej: Feria del Sol" />
         </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Slug *</label>
+        <div className="field">
+          <label>Slug *</label>
           <input
-            type="text"
+            className="input font-mono"
             value={slug}
             onChange={(e) => { setSlug(e.target.value); setSlugTouched(true); }}
             onBlur={() => setSlugTouched(true)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+            required
             placeholder="feria-del-sol"
           />
-          <p className="text-xs text-gray-500 mt-1">Se usa en la URL: /e/{slug || '...'}/admin</p>
+          <p className="mt-1 text-xs text-ink-faint">URL: /e/{slug || '...'}/admin</p>
         </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as any)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="draft">Borrador</option>
-              <option value="active">Activo</option>
-              <option value="closed">Cerrado</option>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="field">
+            <label>Estado</label>
+            <select className="input" value={status} onChange={(e) => setStatus(e.target.value as any)}>
+              {STATUSES.map((s) => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de dispositivo</label>
-            <select
-              value={deviceType}
-              onChange={(e) => setDeviceType(e.target.value as any)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="qr">QR</option>
-              <option value="nfc">NFC</option>
-              <option value="hybrid">Híbrido</option>
+          <div className="field">
+            <label>Dispositivo</label>
+            <select className="input" value={deviceType} onChange={(e) => setDeviceType(e.target.value as any)}>
+              {DEVICE_TYPES.map((d) => (
+                <option key={d.value} value={d.value}>{d.label}</option>
+              ))}
             </select>
           </div>
         </div>
-
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Moneda</label>
-            <input
-              type="text"
-              value={currency}
-              onChange={(e) => setCurrency(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="CRC"
-            />
+        <div className="grid grid-cols-3 gap-3">
+          <div className="field">
+            <label>Moneda</label>
+            <input className="input" value={currency} onChange={(e) => setCurrency(e.target.value)} placeholder="CRC" />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Color primario</label>
-            <input
-              type="color"
-              value={brandPrimary}
-              onChange={(e) => setBrandPrimary(e.target.value)}
-              className="w-full h-10 border border-gray-300 rounded-lg cursor-pointer"
-            />
+          <div className="field">
+            <label>Color primario</label>
+            <input type="color" className="input h-10 cursor-pointer" value={brandPrimary} onChange={(e) => setBrandPrimary(e.target.value)} />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Color secundario</label>
-            <input
-              type="color"
-              value={brandSecondary}
-              onChange={(e) => setBrandSecondary(e.target.value)}
-              className="w-full h-10 border border-gray-300 rounded-lg cursor-pointer"
-            />
+          <div className="field">
+            <label>Color secundario</label>
+            <input type="color" className="input h-10 cursor-pointer" value={brandSecondary} onChange={(e) => setBrandSecondary(e.target.value)} />
           </div>
         </div>
-
-        <div className="flex justify-end space-x-3 pt-4 border-t">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">Cancelar</button>
-          <button
-            type="submit"
-            disabled={saving}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-          >
-            {saving ? 'Creando...' : 'Crear evento'}
+        {error && <p className="text-sm text-rust">{error}</p>}
+        <div className="mt-2 flex justify-end gap-2">
+          <button type="button" className="btn" onClick={onClose} disabled={busy}>Cancelar</button>
+          <button type="submit" className="cta-solid max-w-[180px] text-sm" disabled={busy}>
+            {busy ? 'Creando…' : 'Crear evento'}
           </button>
         </div>
       </form>
@@ -402,19 +421,13 @@ Add to `Events.tsx` (import useState, CreateEventModal):
 
 ```tsx
 // src/pages/admin/Events.tsx — add state and button
-import { useState } from 'react';
-import { useQueryClient } from '@tanstack/query-core';
-import CreateEventModal from './events/CreateEventModal';
+// Add useQueryClient import on line 2 (`import { useQuery, useQueryClient } from '@tanstack/react-query';`)
+// and useState import. Continue inside the component:
+const [showCreate, setShowCreate] = useState(false)
+const queryClient = useQueryClient()
 
-// Inside the component:
-const [showCreate, setShowCreate] = useState(false);
-const queryClient = useQueryClient();
-
-// In the header div, add button:
-<button
-  onClick={() => setShowCreate(true)}
-  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
->
+// In the header div (next to the "N eventos" counter), matching Branches.tsx:
+<button className="cta-gold" onClick={() => setShowCreate(true)}>
   Nuevo evento
 </button>
 
@@ -458,6 +471,8 @@ Same fields as CreateEventModal but pre-filled. Accepts `event` prop.
 
 ```tsx
 // src/pages/admin/events/EditEventModal.tsx
+// STYLING: follow branches/EditBranchModal.tsx exactly — use .field, .input,
+// .btn, .cta-solid, .text-rust classes (NOT raw Tailwind utility classes).
 import { useEffect, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
 import Modal from '../staff/Modal';
@@ -492,23 +507,23 @@ export default function EditEventModal({ event, onClose, onSaved }: Props) {
   const [currency, setCurrency] = useState(event.currency);
   const [brandPrimary, setBrandPrimary] = useState(event.brand_primary);
   const [brandSecondary, setBrandSecondary] = useState(event.brand_secondary);
-  const [error, setError] = useState('');
-  const [saving, setSaving] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.from('organizations').select('id, name, slug')
       .then(({ data }) => { if (data) setOrgs(data); });
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!orgId || !name.trim() || !slug.trim()) {
       setError('Organización, nombre y slug son requeridos.');
       return;
     }
-    setSaving(true);
-    setError('');
-    const { error: updateErr } = await supabase
+    setBusy(true);
+    setError(null);
+    const { error: updateError } = await supabase
       .from('events')
       .update({
         org_id: orgId,
@@ -521,103 +536,77 @@ export default function EditEventModal({ event, onClose, onSaved }: Props) {
         brand_secondary: brandSecondary,
       })
       .eq('id', event.id);
-    setSaving(false);
-    if (updateErr) {
-      if (updateErr.code === '23505') {
+    setBusy(false);
+    if (updateError) {
+      if (updateError.code === '23505') {
         setError('Ya existe otro evento con ese slug. Elige otro.');
       } else {
-        setError(updateErr.message);
+        setError(updateError.message);
       }
       return;
     }
     onSaved();
     onClose();
-  };
+  }
 
   return (
     <Modal title="Editar evento" onClose={onClose}>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {error && <div className="bg-red-50 text-red-700 text-sm p-3 rounded">{error}</div>}
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Organización *</label>
-          <select
-            value={orgId}
-            onChange={(e) => setOrgId(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
-          >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div className="field">
+          <label>Organización *</label>
+          <select className="input" value={orgId} onChange={(e) => setOrgId(e.target.value)}>
             <option value="">Seleccionar organización...</option>
             {orgs.map((o) => (
               <option key={o.id} value={o.id}>{o.name}</option>
             ))}
           </select>
         </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
-          />
+        <div className="field">
+          <label>Nombre *</label>
+          <input className="input" value={name} onChange={(e) => setName(e.target.value)} required />
         </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Slug *</label>
-          <input
-            type="text"
-            value={slug}
-            onChange={(e) => setSlug(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
-          />
-          <p className="text-xs text-gray-500 mt-1">URL: /e/{slug}/admin</p>
+        <div className="field">
+          <label>Slug *</label>
+          <input className="input font-mono" value={slug} onChange={(e) => setSlug(e.target.value)} required />
+          <p className="mt-1 text-xs text-ink-faint">URL: /e/{slug || '...'}/admin</p>
         </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-            <select value={status} onChange={(e) => setStatus(e.target.value as any)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="field">
+            <label>Estado</label>
+            <select className="input" value={status} onChange={(e) => setStatus(e.target.value as any)}>
               <option value="draft">Borrador</option>
               <option value="active">Activo</option>
               <option value="closed">Cerrado</option>
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de dispositivo</label>
-            <select value={deviceType} onChange={(e) => setDeviceType(e.target.value as any)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+          <div className="field">
+            <label>Dispositivo</label>
+            <select className="input" value={deviceType} onChange={(e) => setDeviceType(e.target.value as any)}>
               <option value="qr">QR</option>
               <option value="nfc">NFC</option>
               <option value="hybrid">Híbrido</option>
             </select>
           </div>
         </div>
-
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Moneda</label>
-            <input type="text" value={currency} onChange={(e) => setCurrency(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500" />
+        <div className="grid grid-cols-3 gap-3">
+          <div className="field">
+            <label>Moneda</label>
+            <input className="input" value={currency} onChange={(e) => setCurrency(e.target.value)} />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Color primario</label>
-            <input type="color" value={brandPrimary} onChange={(e) => setBrandPrimary(e.target.value)}
-              className="w-full h-10 border border-gray-300 rounded-lg cursor-pointer" />
+          <div className="field">
+            <label>Color primario</label>
+            <input type="color" className="input h-10 cursor-pointer" value={brandPrimary} onChange={(e) => setBrandPrimary(e.target.value)} />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Color secundario</label>
-            <input type="color" value={brandSecondary} onChange={(e) => setBrandSecondary(e.target.value)}
-              className="w-full h-10 border border-gray-300 rounded-lg cursor-pointer" />
+          <div className="field">
+            <label>Color secundario</label>
+            <input type="color" className="input h-10 cursor-pointer" value={brandSecondary} onChange={(e) => setBrandSecondary(e.target.value)} />
           </div>
         </div>
-
-        <div className="flex justify-end space-x-3 pt-4 border-t">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg">Cancelar</button>
-          <button type="submit" disabled={saving}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
-            {saving ? 'Guardando...' : 'Guardar cambios'}
+        {error && <p className="text-sm text-rust">{error}</p>}
+        <div className="mt-2 flex justify-end gap-2">
+          <button type="button" className="btn" onClick={onClose} disabled={busy}>Cancelar</button>
+          <button type="submit" className="cta-solid max-w-[180px] text-sm" disabled={busy}>
+            {busy ? 'Guardando…' : 'Guardar cambios'}
           </button>
         </div>
       </form>
@@ -630,6 +619,8 @@ export default function EditEventModal({ event, onClose, onSaved }: Props) {
 
 ```tsx
 // src/pages/admin/events/ConfirmDeleteEventDialog.tsx
+// Follow branches/ConfirmDeleteDialog.tsx exactly: ConfirmDialog takes
+// title/message/items/confirmLabel/cancelLabel/danger/busy/error.
 import { useState } from 'react';
 import { supabase } from '../../../lib/supabase';
 import ConfirmDialog from '../staff/ConfirmDialog';
@@ -642,33 +633,39 @@ interface Props {
 }
 
 export default function ConfirmDeleteEventDialog({ eventId, eventName, onClose, onDeleted }: Props) {
-  const [error, setError] = useState('');
-  const [deleting, setDeleting] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleDelete = async () => {
-    setDeleting(true);
-    setError('');
-    const { error: delErr } = await supabase
-      .from('events')
-      .delete()
-      .eq('id', eventId);
-    setDeleting(false);
-    if (delErr) {
-      setError(delErr.message);
+  const items = [
+    'Se eliminarán también sucursales, dispositivos, billeteras y transacciones (cascada).',
+    'Esta acción es irreversible.',
+  ];
+
+  async function handleConfirm() {
+    setBusy(true);
+    setError(null);
+    const { error: deleteError } = await supabase.from('events').delete().eq('id', eventId);
+    setBusy(false);
+    if (deleteError) {
+      setError(deleteError.message);
       return;
     }
     onDeleted();
     onClose();
-  };
+  }
 
   return (
     <ConfirmDialog
-      title={`Eliminar evento "${eventName}"`}
-      description="Esta acción eliminará el evento y todos sus datos asociados (sucursales, dispositivos, billeteras, transacciones). Esta acción es irreversible."
-      confirmLabel={deleting ? 'Eliminando...' : 'Eliminar evento'}
-      onConfirm={handleDelete}
-      onCancel={onClose}
+      title="Eliminar evento"
+      message={`¿Eliminar "${eventName}"?`}
+      items={items}
+      confirmLabel={busy ? 'Eliminando…' : 'Eliminar evento'}
+      cancelLabel="Cancelar"
+      danger
+      busy={busy}
       error={error}
+      onConfirm={handleConfirm}
+      onCancel={onClose}
     />
   );
 }
@@ -676,33 +673,34 @@ export default function ConfirmDeleteEventDialog({ eventId, eventName, onClose, 
 
 - [ ] **Step 3: Add Edit/Delete state and modals to `Events.tsx`**
 
-Add imports and state in `Events.tsx`:
+Add imports and state in `Events.tsx` (useState is already imported from Task 2):
 
 ```tsx
 import EditEventModal from './events/EditEventModal';
 import ConfirmDeleteEventDialog from './events/ConfirmDeleteEventDialog';
 
-// State inside component:
-const [editingEvent, setEditingEvent] = useState<any>(null);
+// State inside component (already has showCreate/queryClient from Task 2):
+const [editingEvent, setEditingEvent] = useState<EventRow | null>(null);
 const [deletingEvent, setDeletingEvent] = useState<{ id: string; name: string } | null>(null);
 ```
 
-In the table row actions `<td>`, add Edit and Delete links:
+Wire the existing action buttons in the Task 1 skeleton row `<td>` (keep `className="btn mr-2"` exactly as-is, just add `onClick`):
 
 ```tsx
-<td className="px-4 py-3 text-right space-x-2">
-  <Link to={`/e/${ev.slug}/admin/dashboard`}
-    className="text-blue-600 hover:underline text-xs">Abrir</Link>
-  <button onClick={() => setEditingEvent(ev)}
-    className="text-yellow-600 hover:underline text-xs">Editar</button>
-  <button onClick={() => setDeletingEvent({ id: ev.id, name: ev.name })}
-    className="text-red-600 hover:underline text-xs">Eliminar</button>
-</td>
+<Link className="btn mr-2" to={`/e/${ev.slug}/admin/dashboard`}>Abrir</Link>
+<button className="btn mr-2" onClick={() => setEditingEvent(ev)}>Editar</button>
+<button className="btn" onClick={() => setDeletingEvent({ id: ev.id, name: ev.name })}>Eliminar</button>
 ```
 
 At bottom of return, add modals:
 
 ```tsx
+{showCreate && (
+  <CreateEventModal
+    onClose={() => setShowCreate(false)}
+    onCreated={() => queryClient.invalidateQueries({ queryKey: ['admin-all-events'] })}
+  />
+)}
 {editingEvent && (
   <EditEventModal
     event={editingEvent}
@@ -744,11 +742,13 @@ git commit -m "feat: add edit/delete event modals with cascade warning (super_ad
 
 - [ ] **Step 1: Ensure "Eventos" nav item appears in the right place in AdminLayout**
 
-If the NAV array ordering matters, place "Eventos" after "Dashboard" and before "Sucursales" to reflect logical hierarchy (events → branches → devices → staff → ...). Adjust the NAV array accordingly.
+Already done in Task 1 Step 2 (NAV now: dashboard 01 → events 02 → branches 03 → staff 04 → devices 05 → transactions 06 → refunds 07). Verify by reading AdminLayout.tsx and confirming the array is exactly as in Task 1. If a previous editing pass left it out of order, reorder so events sits between dashboard and branches.
 
 - [ ] **Step 2: Verify role gating is working**
 
-Manually test in dev: login as `event_admin`, navigate to `/e/demo/admin/events` → should redirect to `/login` (or show access denied). Login as `super_admin` → nav shows "Eventos", page loads.
+Manually test in dev:
+- Login as `event_admin` → the "Eventos" nav item must NOT be visible. Navigating directly to `/e/demo/admin/events` will still render the page (the AdminLayout guard accepts `event_admin`), but RLS (`event_admin_*` policies on `events`) scopes the query to their own org — the table must NOT show other organizations' events. Nav gating is the primary control.
+- Login as `super_admin` → nav shows "Eventos", the page lists ALL events (across orgs) via `super_admin_all_events`.
 
 - [ ] **Step 3: Run lint**
 
