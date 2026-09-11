@@ -306,7 +306,10 @@ export default function CreateEventModal({ onClose, onCreated }: Props) {
 
   useEffect(() => {
     if (!slugTouched) setSlug(slugify(name));
-  }, [name, slugTouched]);
+  }, [name, slugTouched]); // LINT NOTE: eslint react-hooks/set-state-in-effect flags this —
+  // move slug auto-gen into the name input's onChange instead:
+  //   onChange={(e) => { setName(v); if (!slugTouched) setSlug(slugify(v)); }}
+  // The EditEventModal below doesn't use slugify so is lint-clean as-is.
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
