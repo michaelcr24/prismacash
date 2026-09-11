@@ -14,7 +14,13 @@ interface EventRow {
   brand_secondary: string
   starts_at: string | null
   ends_at: string | null
-  organizations: { name: string } | null
+  organizations: { name: string } | { name: string }[] | null
+}
+
+function orgName(orgs: EventRow['organizations']): string {
+  if (!orgs) return '—'
+  if (Array.isArray(orgs)) return orgs[0]?.name ?? '—'
+  return orgs.name
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -45,7 +51,7 @@ export default function Events() {
         .order('created_at', { ascending: false })
       if (error) throw error
       if (!data) return []
-      return data as unknown as EventRow[]
+      return data as EventRow[]
     },
   })
 
@@ -96,7 +102,7 @@ export default function Events() {
                 </td>
                 <td>{DEVICE_LABEL[ev.device_type] ?? ev.device_type}</td>
                 <td className="font-mono text-xs">{ev.currency}</td>
-                <td>{ev.organizations?.name ?? '—'}</td>
+                <td>{orgName(ev.organizations)}</td>
                 <td className="text-xs">{ev.starts_at ? new Date(ev.starts_at).toLocaleDateString() : '—'}</td>
                 <td className="text-xs">{ev.ends_at ? new Date(ev.ends_at).toLocaleDateString() : '—'}</td>
                 <td className="text-right whitespace-nowrap">
